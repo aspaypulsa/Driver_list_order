@@ -407,24 +407,24 @@
     </div>
 
     <script>
-        // Firebase configuration from URL parameters
+        // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Get Firebase config from URL
+        // Firebase configuration from URL
         const firebaseConfig = {
-            apiKey: urlParams.get('apiKey') || "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
-            authDomain: urlParams.get('authDomain') || "chatting-87e87.firebaseapp.com",
-            databaseURL: urlParams.get('databaseURL') || "https://chatting-87e87-default-rtdb.firebaseio.com",
-            projectId: urlParams.get('projectId') || "chatting-87e87",
-            storageBucket: urlParams.get('storageBucket') || "chatting-87e87.appspot.com",
-            messagingSenderId: urlParams.get('messagingSenderId') || "462547022848",
-            appId: urlParams.get('appId') || "1:462547022848:web:2e8e9c15b2d0c680d8e390"
+            apiKey: urlParams.get('apiKey'),
+            authDomain: urlParams.get('authDomain'),
+            databaseURL: urlParams.get('databaseURL'),
+            projectId: urlParams.get('projectId'),
+            storageBucket: urlParams.get('storageBucket'),
+            messagingSenderId: urlParams.get('messagingSenderId'),
+            appId: urlParams.get('appId')
         };
 
-        // Get Google Maps API key from URL
-        const googleMapsApiKey = urlParams.get('googleMapsApiKey') || "AIzaSyDcEUMqoI8cX6bC2q4tKvJvYdHdQ0YHt0E";
+        // Google Maps API key from URL
+        const googleMapsApiKey = urlParams.get('mapsKey');
         
-        // Other parameters
+        // Driver parameters
         const vehicle = urlParams.get('vehicle');
         const driverID = urlParams.get('driverID');
         const token = urlParams.get('token');
@@ -442,11 +442,12 @@
         let driverPosition = null;
         let currentOrder = null;
         let map = null;
+        let watchId = null;
         
-        // Get driver's location
+        // Get driver's location (only for display, not saved to Firebase)
         function getDriverLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.watchPosition(
+                watchId = navigator.geolocation.watchPosition(
                     (position) => {
                         driverPosition = {
                             lat: position.coords.latitude,
@@ -454,15 +455,6 @@
                         };
                         document.getElementById("location-status").textContent = 
                             `Lokasi aktif: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}`;
-                            
-                        // Update driver location in Firebase
-                        if (driverID) {
-                            database.ref(`drivers/${driverID}`).update({
-                                location: driverPosition,
-                                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
-                                status: "available"
-                            });
-                        }
                     },
                     (error) => {
                         console.error("Error getting location:", error);
@@ -583,12 +575,13 @@
             let distanceInfo = '';
             let distanceValue = null;
             
-            if (driverPosition && order.from_lat && order.from_lng) {
+            if (driverPosition && order.from_latlng) {
+                const [lat, lng] = order.from_latlng.split(',');
                 distanceValue = calculateDistance(
                     driverPosition.lat,
                     driverPosition.lng,
-                    parseFloat(order.from_lat),
-                    parseFloat(order.from_lng)
+                    parseFloat(lat),
+                    parseFloat(lng)
                 );
                 distanceInfo = ` (${distanceValue.toFixed(1)} km dari Anda)`;
             }
@@ -601,7 +594,7 @@
                 </div>
                 <div class="address">
                     <div class="address-title">👤 Nama Pemesan</div>
-                    <div class="address-text">${order.name || 'Pemesan'}</div>
+                    <div class="address-text">${order.userName || 'Pemesan'}</div>
                 </div>
                 <div class="info-grid">
                     <div class="info-item">
@@ -654,29 +647,6 @@
             currentOrder = null;
         }
         
-        // Accept order
-        function acceptOrder() {
-            if (!currentOrder) return;
-            
-            // Update Firebase status
-            database.ref(`pesanan/${currentOrder.key}`).update({
-                status: "diambil",
-                driverID: driverID,
-                driverName: namaDriver,
-                driverLocation: driverPosition,
-                takenAt: firebase.database.ServerValue.TIMESTAMP
-            });
-            
-            // Update driver status
-            database.ref(`drivers/${driverID}`).update({
-                status: "on_trip",
-                currentOrder: currentOrder.key
-            });
-            
-            // Redirect to order taken page
-            window.location.href = `order_diambil.html?orderID=${currentOrder.key}&driverID=${driverID}&token=${token}`;
-        }
-        
         // Get vehicle icon based on type
         function getVehicleIcon(vehicleType) {
             const icons = {
@@ -688,6 +658,68 @@
                 'pickup_scooter': '🛵'
             };
             return icons[vehicleType] || '🚗';
+        }
+        
+        // Accept order
+        function acceptOrder() {
+            if (!currentOrder || !driverPosition) return;
+            
+            // Stop watching position before redirect
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+            
+            // Update Firebase
+            const updates = {};
+            updates[`orders/${currentOrder.key}/status`] = "diambil";
+            updates[`orders/${currentOrder.key}/driverID`] = driverID;
+            updates[`orders/${currentOrder.key}/driverName`] = namaDriver;
+            updates[`orders/${currentOrder.key}/driverLocation`] = driverPosition;
+            updates[`orders/${currentOrder.key}/takenAt`] = firebase.database.ServerValue.TIMESTAMP;
+            
+            updates[`drivers/${driverID}/status`] = "on_trip";
+            updates[`drivers/${driverID}/location`] = driverPosition;
+            updates[`drivers/${driverID}/lastUpdate`] = firebase.database.ServerValue.TIMESTAMP;
+            updates[`drivers/${driverID}/currentOrder`] = currentOrder.key;
+            
+            database.ref().update(updates)
+                .then(() => {
+                    // Redirect to order taken page
+                    const params = new URLSearchParams();
+                    params.append('orderID', currentOrder.key);
+                    params.append('driverID', driverID);
+                    params.append('token', token);
+                    params.append('from', currentOrder.from);
+                    params.append('to', currentOrder.to);
+                    params.append('from_latlng', currentOrder.from_latlng);
+                    params.append('to_latlng', currentOrder.to_latlng);
+                    params.append('vehicle', currentOrder.vehicle);
+                    params.append('totalPrice', currentOrder.totalPrice);
+                    
+                    window.location.href = `order_diambil.html?${params.toString()}`;
+                })
+                .catch((error) => {
+                    console.error("Error updating order:", error);
+                    alert("Gagal mengambil pesanan. Silakan coba lagi.");
+                });
+        }
+        
+        // Cancel order
+        function cancelOrder() {
+            if (!currentOrder) return;
+            
+            // Remove driver info from order
+            database.ref(`orders/${currentOrder.key}`).update({
+                driverID: null,
+                driverLocation: null
+            });
+            
+            // Update driver status
+            database.ref(`drivers/${driverID}`).update({
+                status: "available"
+            });
+            
+            closeNotification();
         }
         
         // Create order card
@@ -762,7 +794,7 @@
         
         // Load orders from Firebase
         function loadOrders() {
-            const ordersRef = database.ref('pesanan');
+            const ordersRef = database.ref('orders');
             
             ordersRef.on('value', (snapshot) => {
                 const orders = snapshot.val();
@@ -778,7 +810,8 @@
                         
                         // Filter by vehicle type and status
                         if (order.vehicle === vehicle && 
-                           (order.status === 'menunggudriver' || order.status === 'menungaudriver')) {
+                           order.status !== 'selesai' && 
+                           order.status !== 'diambil') {
                             ordersContainer.appendChild(createOrderCard(order));
                             orderCount++;
                         }
@@ -815,7 +848,7 @@
         }
         
         // Event listeners
-        document.getElementById('btnCancel').addEventListener('click', closeNotification);
+        document.getElementById('btnCancel').addEventListener('click', cancelOrder);
         document.getElementById('btnTake').addEventListener('click', acceptOrder);
         document.getElementById('closeNotification').addEventListener('click', closeNotification);
         
