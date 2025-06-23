@@ -1,369 +1,100 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver - List Order</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        body {
-            background: #f5f7fa;
-            padding: 15px;
-        }
-        
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .order-card {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            cursor: pointer;
-        }
-        
-        .distance-price {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .distance {
-            color: #4a5568;
-            font-size: 14px;
-        }
-        
-        .price {
-            color: #10b981;
-            font-weight: 600;
-            font-size: 16px;
-        }
-        
-        .address-section {
-            margin-bottom: 10px;
-        }
-        
-        .pickup, .delivery {
-            margin-bottom: 5px;
-        }
-        
-        .address-title {
-            font-weight: 600;
-            font-size: 14px;
-            color: #2d3748;
-        }
-        
-        .address-text {
-            font-size: 14px;
-            color: #4a5568;
-        }
-        
-        .service-info {
-            font-size: 12px;
-            color: #718096;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #edf2f7;
-        }
-        
-        /* Bottom Sheet Style */
-        .bottom-sheet {
-            position: fixed;
-            bottom: -100%;
-            left: 0;
-            right: 0;
-            height: 70vh;
-            background: white;
-            border-radius: 20px 20px 0 0;
-            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            transition: bottom 0.3s ease;
-            padding: 20px;
-            overflow-y: auto;
-        }
-        
-        .bottom-sheet.active {
-            bottom: 0;
-        }
-        
-        .sheet-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #edf2f7;
-        }
-        
-        .sheet-title {
-            font-weight: 600;
-            font-size: 18px;
-        }
-        
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        
-        .detail-distance-price {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-        
-        .detail-price {
-            font-weight: 600;
-            font-size: 18px;
-            color: #10b981;
-        }
-        
-        .detail-address {
-            margin-bottom: 20px;
-        }
-        
-        .detail-service {
-            margin-bottom: 20px;
-        }
-        
-        .service-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        
-        .service-label {
-            color: #718096;
-        }
-        
-        .service-value {
-            color: #2d3748;
-            font-weight: 500;
-        }
-        
-        .offer-section {
-            margin: 25px 0;
-        }
-        
-        .offer-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        
-        .offer-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .offer-btn {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            background: white;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .offer-btn.selected {
-            background: #bbf7d0;
-            border-color: #86efac;
-            color: #15803d;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .action-btn {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        .skip-btn {
-            background: #f8fafc;
-            color: #4a5568;
-        }
-        
-        .accept-btn {
-            background: #10b981;
-            color: white;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Daftar Pesanan Penumpang</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
+    h2 { text-align: center; }
+    .order-card {
+      background: #fff;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .order-card h3 { margin: 0; font-size: 18px; }
+    .order-card p { margin: 5px 0; font-size: 14px; }
+    .btn-detail {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Order List -->
-        <div class="order-card" onclick="showOrderDetail(1)">
-            <div class="distance-price">
-                <span class="distance">~3,1 km</span>
-                <span class="price">Rp11.000</span>
-            </div>
-            <div class="address-section">
-                <div class="pickup">
-                    <div class="address-title">Geprek dilan</div>
-                    <div class="address-text">Jalan MH. Thamrin Dalam, Islam, Manado City, North Sulawesi</div>
-                </div>
-                <div class="delivery">
-                    <div class="address-title">Pasar Bersehati Manado</div>
-                    <div class="address-text">Calaca, Manado City, North Sulawesi</div>
-                </div>
-            </div>
-            <div class="service-info">
-                Kurir · Dari pintu ke pintu · hingga 5 kg · Makanan
-            </div>
-        </div>
-        
-        <div class="order-card" onclick="showOrderDetail(2)">
-            <div class="distance-price">
-                <span class="distance">~8,7 km</span>
-                <span class="price">Rp10.000</span>
-            </div>
-            <div class="address-section">
-                <div class="pickup">
-                    <div class="address-title">Jalan P. Miangas</div>
-                    <div class="address-text">Swidy (Batu Kota, Manado City, North Sulawesi)</div>
-                </div>
-            </div>
-            <div class="service-info">
-                Kurir · Pintu ke pintu · Paket S · Makanan
-            </div>
-        </div>
-        
-        <div class="order-card" onclick="showOrderDetail(3)">
-            <div class="distance-price">
-                <span class="distance">~14,5 km</span>
-                <span class="price">Rp16.000</span>
-            </div>
-            <div class="address-section">
-                <div class="pickup">
-                    <div class="address-title">Jl. Adipura Raya 99</div>
-                </div>
-                <div class="delivery">
-                    <div class="address-title">Jl. Teratai 2 27</div>
-                    <div class="address-title">Jl. Falcon</div>
-                </div>
-            </div>
-            <div class="service-info">
-                Banyak titik · Kurir · hingga 5 kg
-            </div>
-        </div>
-    </div>
-    
-    <!-- Bottom Sheet for Order Detail -->
-    <div class="bottom-sheet" id="orderDetailSheet">
-        <div class="sheet-header">
-            <div class="sheet-title">Detail Pesanan</div>
-            <button class="close-btn" onclick="hideOrderDetail()">×</button>
-        </div>
-        
-        <div class="detail-distance-price">
-            <div class="distance">~8,5 km</div>
-            <div class="detail-price">Rp10.000</div>
-        </div>
-        
-        <div class="detail-address">
-            <div class="address-title">Jalan P. Miangas</div>
-            <div class="address-text">Swidy</div>
-        </div>
-        
-        <div class="detail-service">
-            <div class="service-item">
-                <span class="service-label">Metode Pembayaran:</span>
-                <span class="service-value">Tunai</span>
-            </div>
-            <div class="service-item">
-                <span class="service-label">Layanan:</span>
-                <span class="service-value">Kurir</span>
-            </div>
-            <div class="service-item">
-                <span class="service-label">Jenis Layanan:</span>
-                <span class="service-value">Pintu ke pintu</span>
-            </div>
-            <div class="service-item">
-                <span class="service-label">Paket:</span>
-                <span class="service-value">Paket S</span>
-            </div>
-            <div class="service-item">
-                <span class="service-label">Kategori:</span>
-                <span class="service-value">Makanan</span>
-            </div>
-            <div class="service-item">
-                <span class="service-label">Detail:</span>
-                <span class="service-value">kka mintol bil akg ayam Ilapan 1 dang ,kse trhbh nasi 1</span>
-            </div>
-        </div>
-        
-        <div class="offer-section">
-            <div class="offer-title">Terima dengan harga Rp10.000</div>
-            <div class="offer-subtitle">Tawarkan ongkos Anda</div>
-            
-            <div class="offer-buttons">
-                <button class="offer-btn" onclick="selectOffer(11000)">Rp11.000</button>
-                <button class="offer-btn" onclick="selectOffer(12000)">Rp12.000</button>
-                <button class="offer-btn" onclick="selectOffer(13000)">Rp13.000</button>
-            </div>
-        </div>
-        
-        <div class="action-buttons">
-            <button class="action-btn skip-btn" onclick="hideOrderDetail()">Lewati tawaran</button>
-            <button class="action-btn accept-btn" onclick="acceptOrder()">✅ Ambil Order</button>
-        </div>
-    </div>
 
-    <script>
-        // Show order detail bottom sheet
-        function showOrderDetail(orderId) {
-            document.getElementById('orderDetailSheet').classList.add('active');
+<h2>Daftar Pesanan Pending</h2>
+<div id="orderList"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+  function getParam(key) {
+    const url = new URL(window.location.href);
+    return url.searchParams.get(key);
+  }
+
+  // Ambil konfigurasi dari URL
+  const firebaseConfig = {
+    apiKey: getParam("apiKey"),
+    authDomain: getParam("authDomain"),
+    databaseURL: getParam("databaseURL"),
+    projectId: getParam("projectId"),
+  };
+
+  // Cek jika salah satu config tidak ada
+  if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
+    alert("Konfigurasi Firebase tidak lengkap di URL!");
+  } else {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const orderListDiv = document.getElementById("orderList");
+
+    function loadOrders() {
+      db.ref("orders").on("value", snapshot => {
+        orderListDiv.innerHTML = "";
+        const orders = snapshot.val();
+
+        if (orders) {
+          Object.entries(orders).forEach(([orderId, order]) => {
+            if (order.status === "pending") {
+              const card = document.createElement("div");
+              card.className = "order-card";
+              card.innerHTML = `
+                <h3>${order.userName}</h3>
+                <p><strong>Jemput:</strong> ${order.from}</p>
+                <p><strong>Tujuan:</strong> ${order.to}</p>
+                <p><strong>Jarak:</strong> ${order.distance}</p>
+                <p><strong>Durasi:</strong> ${order.duration}</p>
+                <p><strong>Harga:</strong> Rp ${order.totalPrice}</p>
+                <p><strong>Kendaraan:</strong> ${order.vehicle}</p>
+                <button class="btn-detail" onclick="lihatDetail('${orderId}')">Lihat Detail</button>
+              `;
+              orderListDiv.appendChild(card);
+            }
+          });
+        } else {
+          orderListDiv.innerHTML = "<p>Tidak ada pesanan tersedia.</p>";
         }
-        
-        // Hide order detail bottom sheet
-        function hideOrderDetail() {
-            document.getElementById('orderDetailSheet').classList.remove('active');
-        }
-        
-        // Select offer price
-        function selectOffer(price) {
-            const buttons = document.querySelectorAll('.offer-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('selected');
-                if(btn.textContent === 'Rp'+price.toLocaleString('id-ID')) {
-                    btn.classList.add('selected');
-                }
-            });
-        }
-        
-        // Accept order
-        function acceptOrder() {
-            // Here you would typically send the order acceptance to your backend
-            alert('Order berhasil diambil!');
-            hideOrderDetail();
-        }
-        
-        // Initialize with first offer selected
-        window.onload = function() {
-            selectOffer(10000);
-        };
-    </script>
+      });
+    }
+
+    function lihatDetail(orderId) {
+      alert("Order ID: " + orderId);
+    }
+
+    loadOrders();
+  }
+</script>
+
 </body>
 </html>
