@@ -407,27 +407,32 @@
     </div>
 
     <script>
-        // Firebase configuration
+        // Firebase configuration from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Get Firebase config from URL
         const firebaseConfig = {
-            apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
-            authDomain: "chatting-87e87.firebaseapp.com",
-            databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
-            projectId: "chatting-87e87",
-            storageBucket: "chatting-87e87.appspot.com",
-            messagingSenderId: "462547022848",
-            appId: "1:462547022848:web:2e8e9c15b2d0c680d8e390"
+            apiKey: urlParams.get('apiKey') || "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+            authDomain: urlParams.get('authDomain') || "chatting-87e87.firebaseapp.com",
+            databaseURL: urlParams.get('databaseURL') || "https://chatting-87e87-default-rtdb.firebaseio.com",
+            projectId: urlParams.get('projectId') || "chatting-87e87",
+            storageBucket: urlParams.get('storageBucket') || "chatting-87e87.appspot.com",
+            messagingSenderId: urlParams.get('messagingSenderId') || "462547022848",
+            appId: urlParams.get('appId') || "1:462547022848:web:2e8e9c15b2d0c680d8e390"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // Get Google Maps API key from URL
+        const googleMapsApiKey = urlParams.get('googleMapsApiKey') || "AIzaSyDcEUMqoI8cX6bC2q4tKvJvYdHdQ0YHt0E";
         
-        // Get URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
+        // Other parameters
         const vehicle = urlParams.get('vehicle');
         const driverID = urlParams.get('driverID');
         const token = urlParams.get('token');
         const namaDriver = urlParams.get('nama_driver') || "Driver";
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
         
         // Display driver info
         document.getElementById("driver-name-display").textContent = `Driver: ${namaDriver}`;
@@ -449,6 +454,15 @@
                         };
                         document.getElementById("location-status").textContent = 
                             `Lokasi aktif: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}`;
+                            
+                        // Update driver location in Firebase
+                        if (driverID) {
+                            database.ref(`drivers/${driverID}`).update({
+                                location: driverPosition,
+                                lastUpdate: firebase.database.ServerValue.TIMESTAMP,
+                                status: "available"
+                            });
+                        }
                     },
                     (error) => {
                         console.error("Error getting location:", error);
@@ -592,15 +606,15 @@
                 <div class="info-grid">
                     <div class="info-item">
                         <span class="info-label">Harga</span>
-                        <span class="info-value price">Rp${order.harga ? order.harga.toLocaleString('id-ID') : "-"}</span>
+                        <span class="info-value price">Rp${order.totalPrice ? order.totalPrice.toLocaleString('id-ID') : "-"}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Jarak</span>
-                        <span class="info-value distance">${order.jarak || "-"}</span>
+                        <span class="info-value distance">${order.distance || "-"}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Durasi</span>
-                        <span class="info-value duration">${order.durasi || "-"}</span>
+                        <span class="info-value duration">${order.duration || "-"}</span>
                     </div>
                     <div class="info-item">
                         <span class="info-label">Waktu Order</span>
@@ -609,11 +623,11 @@
                 </div>
                 <div class="address">
                     <div class="address-title">📍 Jemput</div>
-                    <div class="address-text">${order.alamat_a || "-"}</div>
+                    <div class="address-text">${order.from || "-"}</div>
                 </div>
                 <div class="address">
                     <div class="address-title">🏁 Tujuan</div>
-                    <div class="address-text">${order.alamat_b || "-"}</div>
+                    <div class="address-text">${order.to || "-"}</div>
                 </div>
                 ${driverPosition ? 
                     `<div class="location-tag">Lokasi driver: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}</div>` : 
@@ -621,10 +635,11 @@
             `;
             
             // Initialize map if we have coordinates
-            if (order.from_lat && order.from_lng) {
+            if (order.from_latlng) {
+                const [lat, lng] = order.from_latlng.split(',');
                 const pickupCoords = {
-                    lat: parseFloat(order.from_lat),
-                    lng: parseFloat(order.from_lng)
+                    lat: parseFloat(lat),
+                    lng: parseFloat(lng)
                 };
                 initMap(pickupCoords);
             }
@@ -647,13 +662,32 @@
             database.ref(`pesanan/${currentOrder.key}`).update({
                 status: "diambil",
                 driverID: driverID,
-                driverName: namaDriver
+                driverName: namaDriver,
+                driverLocation: driverPosition,
+                takenAt: firebase.database.ServerValue.TIMESTAMP
+            });
+            
+            // Update driver status
+            database.ref(`drivers/${driverID}`).update({
+                status: "on_trip",
+                currentOrder: currentOrder.key
             });
             
             // Redirect to order taken page
-            const fromCoords = `${currentOrder.from_lat},${currentOrder.from_lng}`;
-            const toCoords = `${currentOrder.to_lat},${currentOrder.to_lng}`;
-            window.location.href = `order_diambil.html?orderID=${currentOrder.key}&driverID=${driverID}&token=${token}&from=${fromCoords}&to=${toCoords}`;
+            window.location.href = `order_diambil.html?orderID=${currentOrder.key}&driverID=${driverID}&token=${token}`;
+        }
+        
+        // Get vehicle icon based on type
+        function getVehicleIcon(vehicleType) {
+            const icons = {
+                'motor': '🏍️',
+                'bentor': '🛺',
+                'mobil': '🚗',
+                'kurir': '🚚',
+                'pickup': '🛻',
+                'pickup_scooter': '🛵'
+            };
+            return icons[vehicleType] || '🚗';
         }
         
         // Create order card
@@ -662,39 +696,36 @@
             card.className = 'order-card';
             
             // Get vehicle icon
-            let vehicleIcon = '🚗';
-            if (order.vehicle === 'motor') vehicleIcon = '🏍️';
-            else if (order.vehicle === 'sepeda') vehicleIcon = '🚲';
-            else if (order.vehicle === 'truk') vehicleIcon = '🚚';
+            const vehicleIcon = getVehicleIcon(order.vehicle);
             
             card.innerHTML = `
                 <div class="order-header">
                     <div class="vehicle-photo">${vehicleIcon}</div>
-                    <div class="order-name">${order.name || 'Pemesan'}</div>
+                    <div class="order-name">${order.userName || 'Pemesan'}</div>
                 </div>
                 <div class="order-content">
                     <div class="address-section">
                         <div class="pickup">
                             <div class="address-title">📍 Jemput</div>
-                            <div class="address-text">${order.alamat_a || "-"}</div>
+                            <div class="address-text">${order.from || "-"}</div>
                         </div>
                         <div class="destination">
                             <div class="address-title">🏁 Tujuan</div>
-                            <div class="address-text">${order.alamat_b || "-"}</div>
+                            <div class="address-text">${order.to || "-"}</div>
                         </div>
                     </div>
                     <div class="info-grid">
                         <div class="info-item">
                             <span class="info-label">Harga</span>
-                            <span class="info-value price">Rp${order.harga ? order.harga.toLocaleString('id-ID') : "-"}</span>
+                            <span class="info-value price">Rp${order.totalPrice ? order.totalPrice.toLocaleString('id-ID') : "-"}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Jarak</span>
-                            <span class="info-value distance">${order.jarak || "-"}</span>
+                            <span class="info-value distance">${order.distance || "-"}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Durasi</span>
-                            <span class="info-value duration">${order.durasi || "-"}</span>
+                            <span class="info-value duration">${order.duration || "-"}</span>
                         </div>
                         <div class="info-item">
                             <span class="info-label">Kendaraan</span>
@@ -707,12 +738,13 @@
             // Add click event to show notification if nearby
             card.addEventListener('click', () => {
                 // Check distance
-                if (driverPosition && order.from_lat && order.from_lng) {
+                if (driverPosition && order.from_latlng) {
+                    const [lat, lng] = order.from_latlng.split(',');
                     const distance = calculateDistance(
                         driverPosition.lat,
                         driverPosition.lng,
-                        parseFloat(order.from_lat),
-                        parseFloat(order.from_lng)
+                        parseFloat(lat),
+                        parseFloat(lng)
                     );
                     
                     if (distance < 2) {
@@ -744,7 +776,7 @@
                         const order = orders[key];
                         order.key = key;
                         
-                        // Filter by vehicle type
+                        // Filter by vehicle type and status
                         if (order.vehicle === vehicle && 
                            (order.status === 'menunggudriver' || order.status === 'menungaudriver')) {
                             ordersContainer.appendChild(createOrderCard(order));
