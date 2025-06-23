@@ -52,10 +52,6 @@
       font-size: 14px;
     }
 
-    .bold {
-      font-weight: bold;
-    }
-
     .horizontal {
       display: flex;
       gap: 10px;
@@ -126,9 +122,10 @@
             let userName = order.userName || "Penumpang";
 
             try {
-              const userRef = db.ref("Users/phone/" + userId);
-              const userSnap = await userRef.once("value");
+              const userSnap = await db.ref("Users/" + userId).once("value"); // <- sudah benar
               const userData = userSnap.val();
+              console.log("UserID:", userId);
+              console.log("User Data:", userData);
 
               if (userData) {
                 if (userData.photoUrl) photoUrl = userData.photoUrl;
@@ -146,8 +143,8 @@
                 <div>${userName}</div>
               </div>
               <div class="order-info">
-                <p class="bold">Jemput: ${order.from}</p>
-                <p>Tujuan: ${order.to}</p>
+                <p>${order.from}</p>
+                <p>${order.to}</p>
                 <div class="horizontal">
                   <span>${order.distance}</span>
                   <span>${order.duration}</span>
