@@ -5,16 +5,22 @@
   <title>Daftar Pesanan Penumpang</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f0f0f0; }
-    h2 { text-align: center; margin-bottom: 20px; }
-
-    .order-card {
-      display: flex;
-      background: #fff;
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
       padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      background: #ffffff;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .order-item {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
     }
 
     .profile {
@@ -58,19 +64,20 @@
 
     .horizontal span {
       font-size: 13px;
-      background: #e9e9e9;
+      background: #f0f0f0;
       padding: 4px 8px;
-      border-radius: 6px;
+      border-radius: 4px;
     }
 
     .btn-detail {
       background-color: #28a745;
       color: white;
       border: none;
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 5px;
       cursor: pointer;
       margin-top: 10px;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -131,9 +138,9 @@
               console.warn("Gagal mengambil data user:", err);
             }
 
-            const card = document.createElement("div");
-            card.className = "order-card";
-            card.innerHTML = `
+            const item = document.createElement("div");
+            item.className = "order-item";
+            item.innerHTML = `
               <div class="profile">
                 <img src="${photoUrl}" alt="Foto Penumpang">
                 <div>${userName}</div>
@@ -149,7 +156,7 @@
                 <button class="btn-detail" onclick="lihatDetail('${orderId}')">Lihat Detail</button>
               </div>
             `;
-            orderListDiv.appendChild(card);
+            orderListDiv.appendChild(item);
           }
         }
       } else {
