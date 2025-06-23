@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDcEUMqoI8cX6bC2q4tKvJvYdHdQ0YHt0E&libraries=places"></script>
     <style>
         * {
             margin: 0;
@@ -197,74 +196,63 @@
             color: #8b5cf6;
         }
         
-        .notification-overlay {
+        .bottom-sheet {
             position: fixed;
-            top: 0;
+            bottom: -100%;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-        
-        .notification-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        
-        .notification-card {
+            right: 0;
+            height: 80vh;
             background: white;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            transition: bottom 0.3s ease;
+            display: flex;
+            flex-direction: column;
         }
         
-        .notification-header {
-            background: #ef4444;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 20px;
+        .bottom-sheet.active {
+            bottom: 0;
         }
         
         .map-container {
-            height: 250px;
+            height: 60%;
             width: 100%;
             background: #e2e8f0;
         }
         
-        .notification-content {
-            padding: 25px;
+        .sheet-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
         }
         
-        .notification-title {
+        .sheet-header {
+            padding: 15px;
             text-align: center;
-            font-size: 22px;
-            color: #ef4444;
-            margin-bottom: 20px;
             font-weight: 700;
+            font-size: 18px;
+            background: #ef4444;
+            color: white;
+            border-radius: 20px 20px 0 0;
         }
         
-        .notification-info {
-            margin-bottom: 25px;
-        }
-        
-        .notification-info .info-grid {
-            background: #fff7ed;
+        .distance-warning {
+            background: #ffedd5;
+            color: #9a3412;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
         }
         
         .action-buttons {
             display: flex;
             gap: 15px;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
         }
         
         .btn {
@@ -340,31 +328,13 @@
             background: #3a56e0;
         }
         
-        .close-notification {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
+        .map-fallback {
+            height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 1001;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-        
-        .distance-warning {
-            background: #ffedd5;
-            color: #9a3412;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            text-align: center;
+            background: #e2e8f0;
+            color: #4a5568;
             font-weight: 500;
         }
         
@@ -379,6 +349,14 @@
             
             .driver-info h2 {
                 font-size: 1.2rem;
+            }
+            
+            .bottom-sheet {
+                height: 85vh;
+            }
+            
+            .map-container {
+                height: 50%;
             }
         }
     </style>
@@ -397,26 +375,28 @@
             <!-- Orders will be dynamically inserted here -->
         </div>
         
-        <div class="notification-overlay" id="notificationOverlay">
-            <div class="close-notification" id="closeNotification">×</div>
-            <div class="notification-card">
-                <div class="notification-header">DETAIL PESANAN</div>
-                <div class="map-container" id="map"></div>
-                <div class="notification-content">
-                    <div class="notification-title">Informasi Pesanan</div>
-                    <div id="distanceWarning" class="distance-warning" style="display: none;"></div>
-                    <div class="notification-info" id="notificationInfo">
-                        <!-- Notification content will be inserted here -->
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-cancel" id="btnCancel">❌ Kembali</button>
-                        <button class="btn btn-take" id="btnTake">✅ Ambil Order</button>
-                    </div>
+        <div class="bottom-sheet" id="bottomSheet">
+            <div class="sheet-header">DETAIL PESANAN</div>
+            <div class="map-container" id="mapContainer">
+                <div id="map"></div>
+                <div id="mapFallback" class="map-fallback" style="display: none;">
+                    Peta tidak dapat dimuat. Pastikan koneksi internet stabil.
                 </div>
+            </div>
+            <div class="sheet-content">
+                <div id="distanceWarning" class="distance-warning" style="display: none;"></div>
+                <div class="notification-info" id="notificationInfo">
+                    <!-- Notification content will be inserted here -->
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn btn-cancel" id="btnCancel">❌ Batalkan</button>
+                <button class="btn btn-take" id="btnTake">✅ Ambil Order</button>
             </div>
         </div>
     </div>
 
+    <!-- Load Google Maps API with callback -->
     <script>
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -435,323 +415,249 @@
         // Google Maps API key from URL
         const googleMapsApiKey = urlParams.get('mapsKey');
         
-        // Driver parameters
-        const vehicle = urlParams.get('vehicle');
-        const driverID = urlParams.get('driverID');
-        const token = urlParams.get('token');
-        const namaDriver = urlParams.get('nama_driver') || "Driver";
-        
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        
-        // Display driver info
-        document.getElementById("driver-name-display").textContent = `Driver: ${namaDriver}`;
-        document.getElementById("driver-id-display").textContent = driverID || '-';
-        
-        // Store driver position
-        let driverPosition = null;
-        let currentOrder = null;
-        let map = null;
-        let watchId = null;
-        let currentDistance = 0;
-        
-        // Get driver's location (only for display, not saved to Firebase)
-        function getDriverLocation() {
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    (position) => {
-                        driverPosition = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        document.getElementById("location-status").textContent = 
-                            `Lokasi aktif: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}`;
-                    },
-                    (error) => {
-                        console.error("Error getting location:", error);
-                        document.getElementById("location-status").textContent = 
-                            "Lokasi tidak tersedia. Izinkan akses lokasi untuk fitur lengkap";
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
-            } else {
-                document.getElementById("location-status").textContent = 
-                    "Browser tidak mendukung geolokasi";
-            }
-        }
-        
-        // Calculate distance between two coordinates
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Earth radius in km
-            const dLat = (lat2 - lat1) * Math.PI / 180;
-            const dLon = (lon2 - lon1) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                      Math.sin(dLon/2) * Math.sin(dLon/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c; // Distance in km
-        }
-        
-        // Initialize Google Map
-        function initMap(pickupCoords) {
-            const mapElement = document.getElementById('map');
-            
-            // Create map
-            map = new google.maps.Map(mapElement, {
-                center: pickupCoords,
-                zoom: 14,
-                styles: [
-                    {
-                        featureType: "poi",
-                        elementType: "labels",
-                        stylers: [{ visibility: "off" }]
-                    },
-                    {
-                        featureType: "transit",
-                        elementType: "labels",
-                        stylers: [{ visibility: "off" }]
-                    }
-                ]
-            });
-            
-            // Add pickup marker
-            new google.maps.Marker({
-                position: pickupCoords,
-                map: map,
-                title: 'Lokasi Penjemputan',
-                icon: {
-                    url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+        // Load Google Maps API dynamically
+        function loadGoogleMaps() {
+            return new Promise((resolve, reject) => {
+                if (typeof google !== 'undefined' && google.maps) {
+                    resolve();
+                    return;
                 }
-            });
-            
-            // Add driver marker if position available
-            if (driverPosition) {
-                new google.maps.Marker({
-                    position: driverPosition,
-                    map: map,
-                    title: 'Posisi Anda',
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 10,
-                        fillColor: "#3B82F6",
-                        fillOpacity: 1,
-                        strokeColor: "#FFFFFF",
-                        strokeWeight: 2
+
+                const script = document.createElement('script');
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places&callback=initApplication`;
+                script.async = true;
+                script.defer = true;
+                script.onerror = () => {
+                    document.getElementById('map').style.display = 'none';
+                    document.getElementById('mapFallback').style.display = 'flex';
+                    reject(new Error('Gagal memuat Google Maps'));
+                };
+                document.head.appendChild(script);
+                
+                // Fallback if maps doesn't load
+                setTimeout(() => {
+                    if (typeof google === 'undefined') {
+                        document.getElementById('map').style.display = 'none';
+                        document.getElementById('mapFallback').style.display = 'flex';
+                        reject(new Error('Timeout memuat Google Maps'));
                     }
+                }, 5000);
+            });
+        }
+
+        // Initialize application after maps loads
+        window.initApplication = function() {
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
+            
+            // Driver parameters
+            const vehicle = urlParams.get('vehicle');
+            const driverID = urlParams.get('driverID');
+            const token = urlParams.get('token');
+            const namaDriver = urlParams.get('nama_driver') || "Driver";
+            
+            // Display driver info
+            document.getElementById("driver-name-display").textContent = `Driver: ${namaDriver}`;
+            document.getElementById("driver-id-display").textContent = driverID || '-';
+            
+            // Store driver position
+            let driverPosition = null;
+            let currentOrder = null;
+            let map = null;
+            let directionsRenderer = null;
+            let watchId = null;
+            let currentDistance = 0;
+            
+            // Vehicle icons
+            const vehicleIcons = {
+                'motor': 'https://cdn-icons-png.flaticon.com/512/3659/3659894.png',
+                'bentor': 'https://cdn-icons-png.flaticon.com/512/1197/1197465.png',
+                'mobil': 'https://cdn-icons-png.flaticon.com/512/743/743131.png',
+                'pickup': 'https://cdn-icons-png.flaticon.com/512/9017/9017605.png',
+                'pickup_scooter': 'https://cdn-icons-png.flaticon.com/512/11253/11253503.png',
+                'kurir': 'https://cdn-icons-png.flaticon.com/512/743/743131.png'
+            };
+            
+            // Get driver's location
+            function getDriverLocation() {
+                if (navigator.geolocation) {
+                    watchId = navigator.geolocation.watchPosition(
+                        (position) => {
+                            driverPosition = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            document.getElementById("location-status").textContent = 
+                                `Lokasi aktif: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}`;
+                        },
+                        (error) => {
+                            console.error("Error getting location:", error);
+                            document.getElementById("location-status").textContent = 
+                                "Lokasi tidak tersedia. Izinkan akses lokasi untuk fitur lengkap";
+                        },
+                        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+                    );
+                } else {
+                    document.getElementById("location-status").textContent = 
+                        "Browser tidak mendukung geolokasi";
+                }
+            }
+            
+            // Calculate distance between two coordinates
+            function calculateDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371; // Earth radius in km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c; // Distance in km
+            }
+            
+            // Initialize Google Map with route
+            function initMapWithRoute(pickupCoords) {
+                const mapElement = document.getElementById('map');
+                
+                // Create map
+                map = new google.maps.Map(mapElement, {
+                    center: pickupCoords,
+                    zoom: 14,
+                    styles: [
+                        {
+                            featureType: "poi",
+                            elementType: "labels",
+                            stylers: [{ visibility: "off" }]
+                        },
+                        {
+                            featureType: "transit",
+                            elementType: "labels",
+                            stylers: [{ visibility: "off" }]
+                        }
+                    ]
                 });
                 
-                // Draw route from driver to pickup
-                const directionsService = new google.maps.DirectionsService();
-                const directionsRenderer = new google.maps.DirectionsRenderer({
+                // Initialize directions renderer
+                directionsRenderer = new google.maps.DirectionsRenderer({
                     map: map,
-                    suppressMarkers: true,
+                    suppressMarkers: false,
                     polylineOptions: {
                         strokeColor: "#3B82F6",
                         strokeOpacity: 0.8,
-                        strokeWeight: 4
+                        strokeWeight: 5
                     }
                 });
                 
-                const request = {
-                    origin: driverPosition,
-                    destination: pickupCoords,
-                    travelMode: 'DRIVING'
-                };
-                
-                directionsService.route(request, (result, status) => {
-                    if (status === 'OK') {
-                        directionsRenderer.setDirections(result);
-                    }
-                });
-            }
-        }
-        
-        // Show notification with order details
-        function showNotification(order) {
-            if (!order) return;
-            
-            currentOrder = order;
-            
-            // Format order time
-            const orderTime = order.timestamp ? 
-                new Date(order.timestamp).toLocaleTimeString('id-ID', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
-                }) : 'Waktu tidak tersedia';
-            
-            // Calculate distance to pickup if possible
-            const distanceWarning = document.getElementById('distanceWarning');
-            distanceWarning.style.display = 'none';
-            
-            if (driverPosition && order.from_latlng) {
-                const [lat, lng] = order.from_latlng.split(',');
-                currentDistance = calculateDistance(
-                    driverPosition.lat,
-                    driverPosition.lng,
-                    parseFloat(lat),
-                    parseFloat(lng)
-                );
-                
-                if (currentDistance > 2) {
-                    distanceWarning.style.display = 'block';
-                    distanceWarning.textContent = 
-                        `⚠️ Jarak pesanan ${currentDistance.toFixed(1)} km dari lokasi Anda`;
-                }
-            }
-            
-            // Set notification content
-            document.getElementById("notificationInfo").innerHTML = `
-                <div class="address">
-                    <div class="address-title">🛵 Kendaraan</div>
-                    <div class="address-text">${order.vehicle || '-'}</div>
-                </div>
-                <div class="address">
-                    <div class="address-title">👤 Nama Pemesan</div>
-                    <div class="address-text">${order.userName || 'Pemesan'}</div>
-                </div>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">Harga</span>
-                        <span class="info-value price">Rp${order.totalPrice ? order.totalPrice.toLocaleString('id-ID') : "-"}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Jarak</span>
-                        <span class="info-value distance">${order.distance || "-"}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Durasi</span>
-                        <span class="info-value duration">${order.duration || "-"}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Waktu Order</span>
-                        <span class="info-value">${orderTime}</span>
-                    </div>
-                </div>
-                <div class="address">
-                    <div class="address-title">📍 Jemput</div>
-                    <div class="address-text">${order.from || "-"}</div>
-                </div>
-                <div class="address">
-                    <div class="address-title">🏁 Tujuan</div>
-                    <div class="address-text">${order.to || "-"}</div>
-                </div>
-                ${driverPosition ? 
-                    `<div class="location-tag">Lokasi driver: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}</div>` : 
-                    `<div class="location-tag" style="background:#f8d7da;color:#721c24;">Lokasi tidak tersedia! Aktifkan GPS</div>`}
-            `;
-            
-            // Initialize map if we have coordinates
-            if (order.from_latlng) {
-                const [lat, lng] = order.from_latlng.split(',');
-                const pickupCoords = {
-                    lat: parseFloat(lat),
-                    lng: parseFloat(lng)
-                };
-                initMap(pickupCoords);
-            }
-            
-            // Show notification
-            document.getElementById('notificationOverlay').classList.add('active');
-        }
-        
-        // Close notification
-        function closeNotification() {
-            document.getElementById('notificationOverlay').classList.remove('active');
-            currentOrder = null;
-            currentDistance = 0;
-        }
-        
-        // Get vehicle icon based on type
-        function getVehicleIcon(vehicleType) {
-            const icons = {
-                'motor': '🏍️',
-                'bentor': '🛺',
-                'mobil': '🚗',
-                'kurir': '🚚',
-                'pickup': '🛻',
-                'pickup_scooter': '🛵'
-            };
-            return icons[vehicleType] || '🚗';
-        }
-        
-        // Accept order
-        function acceptOrder() {
-            if (!currentOrder || !driverPosition) return;
-            
-            // Show confirmation for long distance orders
-            if (currentDistance > 5) {
-                if (!confirm(`Pesanan ini berjarak ${currentDistance.toFixed(1)} km. Apakah Anda yakin ingin mengambil?`)) {
-                    return;
-                }
-            }
-            
-            // Stop watching position before redirect
-            if (watchId) {
-                navigator.geolocation.clearWatch(watchId);
-            }
-            
-            // Update Firebase
-            const updates = {};
-            updates[`orders/${currentOrder.key}/status`] = "diambil";
-            updates[`orders/${currentOrder.key}/driverID`] = driverID;
-            updates[`orders/${currentOrder.key}/driverName`] = namaDriver;
-            updates[`orders/${currentOrder.key}/driverLocation`] = driverPosition;
-            updates[`orders/${currentOrder.key}/takenAt`] = firebase.database.ServerValue.TIMESTAMP;
-            
-            updates[`drivers/${driverID}/status`] = "on_trip";
-            updates[`drivers/${driverID}/location`] = driverPosition;
-            updates[`drivers/${driverID}/lastUpdate`] = firebase.database.ServerValue.TIMESTAMP;
-            updates[`drivers/${driverID}/currentOrder`] = currentOrder.key;
-            
-            database.ref().update(updates)
-                .then(() => {
-                    // Redirect to order taken page
-                    const params = new URLSearchParams();
-                    params.append('orderID', currentOrder.key);
-                    params.append('driverID', driverID);
-                    params.append('token', token);
-                    params.append('from', currentOrder.from);
-                    params.append('to', currentOrder.to);
-                    params.append('from_latlng', currentOrder.from_latlng);
-                    params.append('to_latlng', currentOrder.to_latlng);
-                    params.append('vehicle', currentOrder.vehicle);
-                    params.append('totalPrice', currentOrder.totalPrice);
+                // Add driver marker if position available
+                if (driverPosition) {
+                    new google.maps.Marker({
+                        position: driverPosition,
+                        map: map,
+                        title: 'Posisi Anda',
+                        icon: {
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: "#3B82F6",
+                            fillOpacity: 1,
+                            strokeColor: "#FFFFFF",
+                            strokeWeight: 2
+                        }
+                    });
                     
-                    window.location.href = `order_diambil.html?${params.toString()}`;
-                })
-                .catch((error) => {
-                    console.error("Error updating order:", error);
-                    alert("Gagal mengambil pesanan. Silakan coba lagi.");
+                    // Calculate route
+                    const directionsService = new google.maps.DirectionsService();
+                    const request = {
+                        origin: driverPosition,
+                        destination: pickupCoords,
+                        travelMode: 'DRIVING'
+                    };
+                    
+                    directionsService.route(request, (result, status) => {
+                        if (status === 'OK') {
+                            directionsRenderer.setDirections(result);
+                        } else {
+                            console.error('Directions request failed:', status);
+                        }
+                    });
+                }
+                
+                // Add pickup marker with vehicle icon
+                const vehicleIcon = vehicleIcons[vehicle] || vehicleIcons['mobil'];
+                
+                new google.maps.Marker({
+                    position: pickupCoords,
+                    map: map,
+                    title: 'Lokasi Penjemputan',
+                    icon: {
+                        url: vehicleIcon,
+                        scaledSize: new google.maps.Size(40, 40)
+                    }
                 });
-        }
-        
-        // Create order card
-        function createOrderCard(order) {
-            const card = document.createElement('div');
-            card.className = 'order-card';
+                
+                // Trigger map resize when bottom sheet is shown
+                setTimeout(() => {
+                    google.maps.event.trigger(map, 'resize');
+                    map.setCenter(pickupCoords);
+                }, 300);
+            }
             
-            // Get vehicle icon
-            const vehicleIcon = getVehicleIcon(order.vehicle);
-            
-            card.innerHTML = `
-                <div class="order-header">
-                    <div class="vehicle-photo">${vehicleIcon}</div>
-                    <div class="order-name">${order.userName || 'Pemesan'}</div>
-                </div>
-                <div class="order-content">
-                    <div class="address-section">
-                        <div class="pickup">
-                            <div class="address-title">📍 Jemput</div>
-                            <div class="address-text">${order.from || "-"}</div>
-                        </div>
-                        <div class="destination">
-                            <div class="address-title">🏁 Tujuan</div>
-                            <div class="address-text">${order.to || "-"}</div>
-                        </div>
+            // Show bottom sheet with order details
+            function showOrderDetails(order) {
+                if (!order) return;
+                
+                currentOrder = order;
+                document.getElementById('bottomSheet').classList.add('active');
+                
+                // Format order time
+                const orderTime = order.timestamp ? 
+                    new Date(order.timestamp).toLocaleTimeString('id-ID', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    }) : 'Waktu tidak tersedia';
+                
+                // Calculate distance to pickup if possible
+                const distanceWarning = document.getElementById('distanceWarning');
+                distanceWarning.style.display = 'none';
+                
+                if (driverPosition && order.from_latlng) {
+                    const [lat, lng] = order.from_latlng.split(',');
+                    currentDistance = calculateDistance(
+                        driverPosition.lat,
+                        driverPosition.lng,
+                        parseFloat(lat),
+                        parseFloat(lng)
+                    );
+                    
+                    if (currentDistance > 2) {
+                        distanceWarning.style.display = 'block';
+                        distanceWarning.textContent = 
+                            `⚠️ Jarak pesanan ${currentDistance.toFixed(1)} km dari lokasi Anda`;
+                    }
+                    
+                    // Initialize map with route
+                    const pickupCoords = {
+                        lat: parseFloat(lat),
+                        lng: parseFloat(lng)
+                    };
+                    initMapWithRoute(pickupCoords);
+                } else {
+                    document.getElementById('map').style.display = 'none';
+                    document.getElementById('mapFallback').style.display = 'flex';
+                }
+                
+                // Set order info content
+                document.getElementById("notificationInfo").innerHTML = `
+                    <div class="address">
+                        <div class="address-title">🛵 Kendaraan</div>
+                        <div class="address-text">${order.vehicle || '-'}</div>
+                    </div>
+                    <div class="address">
+                        <div class="address-title">👤 Nama Pemesan</div>
+                        <div class="address-text">${order.userName || 'Pemesan'}</div>
                     </div>
                     <div class="info-grid">
                         <div class="info-item">
@@ -767,84 +673,219 @@
                             <span class="info-value duration">${order.duration || "-"}</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">Kendaraan</span>
-                            <span class="info-value vehicle-type">${order.vehicle || "-"}</span>
+                            <span class="info-label">Waktu Order</span>
+                            <span class="info-value">${orderTime}</span>
                         </div>
                     </div>
-                </div>
-            `;
+                    <div class="address">
+                        <div class="address-title">📍 Jemput</div>
+                        <div class="address-text">${order.from || "-"}</div>
+                    </div>
+                    <div class="address">
+                        <div class="address-title">🏁 Tujuan</div>
+                        <div class="address-text">${order.to || "-"}</div>
+                    </div>
+                    ${driverPosition ? 
+                        `<div class="location-tag">Lokasi driver: ${driverPosition.lat.toFixed(6)}, ${driverPosition.lng.toFixed(6)}</div>` : 
+                        `<div class="location-tag" style="background:#f8d7da;color:#721c24;">Lokasi tidak tersedia! Aktifkan GPS</div>`}
+                `;
+            }
             
-            // Add click event to show order details
-            card.addEventListener('click', () => {
-                showNotification(order);
-            });
+            // Close bottom sheet
+            function closeOrderDetails() {
+                document.getElementById('bottomSheet').classList.remove('active');
+                currentOrder = null;
+                currentDistance = 0;
+            }
             
-            return card;
-        }
-        
-        // Load orders from Firebase
-        function loadOrders() {
-            const ordersRef = database.ref('orders');
+            // Get vehicle icon based on type
+            function getVehicleIcon(vehicleType) {
+                const icons = {
+                    'motor': '🏍️',
+                    'bentor': '🛺',
+                    'mobil': '🚗',
+                    'kurir': '🚚',
+                    'pickup': '🛻',
+                    'pickup_scooter': '🛵'
+                };
+                return icons[vehicleType] || '🚗';
+            }
             
-            ordersRef.on('value', (snapshot) => {
-                const orders = snapshot.val();
-                const ordersContainer = document.getElementById('ordersContainer');
-                ordersContainer.innerHTML = '';
+            // Accept order
+            function acceptOrder() {
+                if (!currentOrder || !driverPosition) return;
                 
-                let orderCount = 0;
-                
-                if (orders) {
-                    for (const key in orders) {
-                        const order = orders[key];
-                        order.key = key;
-                        
-                        // Filter by vehicle type and status
-                        if (order.vehicle === vehicle && 
-                           order.status !== 'selesai' && 
-                           order.status !== 'diambil') {
-                            ordersContainer.appendChild(createOrderCard(order));
-                            orderCount++;
-                        }
+                // Show confirmation for long distance orders
+                if (currentDistance > 5) {
+                    if (!confirm(`Pesanan ini berjarak ${currentDistance.toFixed(1)} km. Apakah Anda yakin ingin mengambil?`)) {
+                        return;
                     }
                 }
                 
-                document.getElementById('order-count').textContent = 
-                    orderCount === 0 ? 
-                    "Tidak ada pesanan tersedia untuk kendaraan Anda" : 
-                    `Ditemukan ${orderCount} pesanan untuk ${vehicle}`;
+                // Stop watching position before redirect
+                if (watchId) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
                 
-                if (orderCount === 0) {
+                // Update Firebase
+                const updates = {};
+                updates[`orders/${currentOrder.key}/status`] = "diambil";
+                updates[`orders/${currentOrder.key}/driverID`] = driverID;
+                updates[`orders/${currentOrder.key}/driverName`] = namaDriver;
+                updates[`orders/${currentOrder.key}/driverLocation`] = driverPosition;
+                updates[`orders/${currentOrder.key}/takenAt`] = firebase.database.ServerValue.TIMESTAMP;
+                
+                updates[`drivers/${driverID}/status`] = "on_trip";
+                updates[`drivers/${driverID}/location`] = driverPosition;
+                updates[`drivers/${driverID}/lastUpdate`] = firebase.database.ServerValue.TIMESTAMP;
+                updates[`drivers/${driverID}/currentOrder`] = currentOrder.key;
+                
+                database.ref().update(updates)
+                    .then(() => {
+                        // Redirect to order taken page
+                        const params = new URLSearchParams();
+                        params.append('orderID', currentOrder.key);
+                        params.append('driverID', driverID);
+                        params.append('token', token);
+                        params.append('from', currentOrder.from);
+                        params.append('to', currentOrder.to);
+                        params.append('from_latlng', currentOrder.from_latlng);
+                        params.append('to_latlng', currentOrder.to_latlng);
+                        params.append('vehicle', currentOrder.vehicle);
+                        params.append('totalPrice', currentOrder.totalPrice);
+                        
+                        window.location.href = `order_diambil.html?${params.toString()}`;
+                    })
+                    .catch((error) => {
+                        console.error("Error updating order:", error);
+                        alert("Gagal mengambil pesanan. Silakan coba lagi.");
+                    });
+            }
+            
+            // Create order card
+            function createOrderCard(order) {
+                const card = document.createElement('div');
+                card.className = 'order-card';
+                
+                // Get vehicle icon
+                const vehicleIcon = getVehicleIcon(order.vehicle);
+                
+                card.innerHTML = `
+                    <div class="order-header">
+                        <div class="vehicle-photo">${vehicleIcon}</div>
+                        <div class="order-name">${order.userName || 'Pemesan'}</div>
+                    </div>
+                    <div class="order-content">
+                        <div class="address-section">
+                            <div class="pickup">
+                                <div class="address-title">📍 Jemput</div>
+                                <div class="address-text">${order.from || "-"}</div>
+                            </div>
+                            <div class="destination">
+                                <div class="address-title">🏁 Tujuan</div>
+                                <div class="address-text">${order.to || "-"}</div>
+                            </div>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Harga</span>
+                                <span class="info-value price">Rp${order.totalPrice ? order.totalPrice.toLocaleString('id-ID') : "-"}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Jarak</span>
+                                <span class="info-value distance">${order.distance || "-"}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Durasi</span>
+                                <span class="info-value duration">${order.duration || "-"}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Kendaraan</span>
+                                <span class="info-value vehicle-type">${order.vehicle || "-"}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click event to show order details
+                card.addEventListener('click', () => {
+                    showOrderDetails(order);
+                });
+                
+                return card;
+            }
+            
+            // Load orders from Firebase
+            function loadOrders() {
+                const ordersRef = database.ref('orders');
+                
+                ordersRef.on('value', (snapshot) => {
+                    const orders = snapshot.val();
+                    const ordersContainer = document.getElementById('ordersContainer');
+                    ordersContainer.innerHTML = '';
+                    
+                    let orderCount = 0;
+                    
+                    if (orders) {
+                        for (const key in orders) {
+                            const order = orders[key];
+                            order.key = key;
+                            
+                            // Filter by vehicle type and status
+                            if (order.vehicle === vehicle && 
+                               order.status !== 'selesai' && 
+                               order.status !== 'diambil') {
+                                ordersContainer.appendChild(createOrderCard(order));
+                                orderCount++;
+                            }
+                        }
+                    }
+                    
+                    document.getElementById('order-count').textContent = 
+                        orderCount === 0 ? 
+                        "Tidak ada pesanan tersedia untuk kendaraan Anda" : 
+                        `Ditemukan ${orderCount} pesanan untuk ${vehicle}`;
+                    
+                    if (orderCount === 0) {
+                        ordersContainer.innerHTML = `
+                            <div class="no-orders">
+                                <div class="no-orders-icon">📭</div>
+                                <div class="no-orders-text">Tidak ada pesanan tersedia untuk kendaraan Anda</div>
+                                <button class="refresh-btn" onclick="window.location.reload()">🔄 Refresh Halaman</button>
+                            </div>
+                        `;
+                    }
+                }, (error) => {
+                    console.error("Error reading data: ", error);
+                    document.getElementById('order-count').textContent = 
+                        "Gagal memuat data pesanan";
+                        
                     ordersContainer.innerHTML = `
                         <div class="no-orders">
-                            <div class="no-orders-icon">📭</div>
-                            <div class="no-orders-text">Tidak ada pesanan tersedia untuk kendaraan Anda</div>
+                            <div class="no-orders-icon">⚠️</div>
+                            <div class="no-orders-text">Gagal memuat data pesanan. Silakan coba lagi.</div>
                             <button class="refresh-btn" onclick="window.location.reload()">🔄 Refresh Halaman</button>
                         </div>
                     `;
-                }
-            }, (error) => {
-                console.error("Error reading data: ", error);
-                document.getElementById('order-count').textContent = 
-                    "Gagal memuat data pesanan";
-                    
-                ordersContainer.innerHTML = `
-                    <div class="no-orders">
-                        <div class="no-orders-icon">⚠️</div>
-                        <div class="no-orders-text">Gagal memuat data pesanan. Silakan coba lagi.</div>
-                        <button class="refresh-btn" onclick="window.location.reload()">🔄 Refresh Halaman</button>
-                    </div>
-                `;
-            });
-        }
-        
-        // Event listeners
-        document.getElementById('btnCancel').addEventListener('click', closeNotification);
-        document.getElementById('btnTake').addEventListener('click', acceptOrder);
-        document.getElementById('closeNotification').addEventListener('click', closeNotification);
-        
-        // Initialize
-        getDriverLocation();
-        loadOrders();
+                });
+            }
+            
+            // Event listeners
+            document.getElementById('btnCancel').addEventListener('click', closeOrderDetails);
+            document.getElementById('btnTake').addEventListener('click', acceptOrder);
+            
+            // Initialize
+            getDriverLocation();
+            loadOrders();
+        };
+
+        // Start loading Google Maps
+        loadGoogleMaps().catch(error => {
+            console.error('Error loading Google Maps:', error);
+            // Initialize Firebase even if maps fails
+            firebase.initializeApp(firebaseConfig);
+            initApplication();
+        });
     </script>
 </body>
 </html>
