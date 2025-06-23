@@ -1,173 +1,652 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Daftar Pesanan Penumpang</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 15px;
-      background: #ffffff;
-    }
-
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .order-item {
-      display: flex;
-      border-bottom: 1px solid #ddd;
-      padding: 10px 0;
-    }
-
-    .profile {
-      width: 70px;
-      margin-right: 15px;
-      text-align: center;
-    }
-
-    .profile img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-
-    .profile div {
-      font-size: 13px;
-      margin-top: 5px;
-      color: gray;
-      word-break: break-word;
-    }
-
-    .order-info {
-      flex: 1;
-    }
-
-    .order-info p {
-      margin: 4px 0;
-      font-size: 14px;
-    }
-
-    .horizontal {
-      display: flex;
-      gap: 10px;
-      margin-top: 5px;
-    }
-
-    .horizontal span {
-      font-size: 13px;
-      background: #f0f0f0;
-      padding: 4px 8px;
-      border-radius: 4px;
-    }
-
-    .btn-detail {
-      background-color: #28a745;
-      color: white;
-      border: none;
-      padding: 6px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-      font-size: 13px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profil Penumpang - Simpan Data</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px 0 30px;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #4285f4, #34a853, #ea4335, #fbbc05);
+            border-radius: 2px;
+        }
+        
+        .header h1 {
+            color: #1a73e8;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header p {
+            color: #5f6368;
+            font-size: 1.1rem;
+        }
+        
+        .logo {
+            font-size: 60px;
+            color: #1a73e8;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #202124;
+            font-size: 0.95rem;
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #1a73e8;
+            font-size: 18px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 16px 16px 16px 45px;
+            border: 1px solid #dadce0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+            background: #f8f9fa;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+            background: #fff;
+        }
+        
+        .phone-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .country-code {
+            padding: 16px;
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            border-radius: 10px;
+            font-weight: 600;
+            color: #202124;
+            min-width: 80px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        .photo-upload {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px dashed #dadce0;
+            transition: all 0.3s;
+        }
+        
+        .photo-upload:hover {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+        
+        .photo-preview {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            background: #fff;
+            border: 2px dashed #dadce0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .photo-preview:hover {
+            border-color: #1a73e8;
+            transform: scale(1.03);
+        }
+        
+        .photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+        
+        .photo-preview i {
+            font-size: 48px;
+            color: #dadce0;
+            transition: all 0.3s;
+        }
+        
+        .photo-preview:hover i {
+            color: #1a73e8;
+        }
+        
+        .upload-btn {
+            display: inline-block;
+            background: #1a73e8;
+            color: white;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            border: none;
+            font-size: 16px;
+            box-shadow: 0 4px 10px rgba(26, 115, 232, 0.3);
+        }
+        
+        .upload-btn:hover {
+            background: #1669d8;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(26, 115, 232, 0.4);
+        }
+        
+        .upload-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        #fileInput {
+            display: none;
+        }
+        
+        .save-btn {
+            display: block;
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #1a73e8, #34a853);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 25px;
+            box-shadow: 0 5px 20px rgba(26, 115, 232, 0.4);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        
+        .save-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #34a853, #1a73e8);
+            z-index: -1;
+            transition: opacity 0.3s;
+            opacity: 0;
+        }
+        
+        .save-btn:hover::before {
+            opacity: 1;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(26, 115, 232, 0.5);
+        }
+        
+        .save-btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .save-btn:disabled {
+            background: #dadce0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .save-btn:disabled::before {
+            display: none;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 15px;
+            background: #e8f0fe;
+            color: #1a73e8;
+            border: 1px solid #1a73e8;
+        }
+        
+        .tech-container {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tech-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tech-icon {
+            font-size: 32px;
+            color: #1a73e8;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8f0fe;
+        }
+        
+        .tech-label {
+            font-size: 12px;
+            color: #5f6368;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+            
+            .container {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .photo-preview {
+                width: 140px;
+                height: 140px;
+            }
+            
+            .country-code {
+                min-width: 70px;
+                padding: 14px;
+                font-size: 15px;
+            }
+            
+            .save-btn {
+                padding: 16px;
+                font-size: 16px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <i class="fas fa-user-circle"></i>
+            </div>
+            <h1>Profil Penumpang</h1>
+            <p>Lengkapi data diri Anda untuk pengalaman perjalanan yang lebih baik</p>
+        </div>
+        
+        <form id="profileForm">
+            <div class="form-group">
+                <label for="phone">Nomor HP</label>
+                <div class="phone-input-container">
+                    <div class="country-code">+62</div>
+                    <div class="input-with-icon" style="flex: 1">
+                        <i class="fas fa-phone"></i>
+                        <input type="tel" id="phone" placeholder="Contoh: 82312345678" required>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="photo-upload">
+                <div class="photo-preview" id="photoPreview">
+                    <i class="fas fa-camera"></i>
+                    <img id="previewImage" src="" alt="Preview Foto">
+                </div>
+                <div class="upload-btn" id="uploadTrigger">
+                    <i class="fas fa-upload"></i> Pilih Foto Profil
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+                <div class="status-badge">Maksimal 5MB</div>
+            </div>
+            
+            <button type="submit" class="save-btn" id="saveBtn">
+                <i class="fas fa-save"></i> Simpan Profil
+            </button>
+        </form>
+        
+        <div class="tech-container">
+            <div class="tech-item">
+                <div class="tech-icon">
+                    <i class="fas fa-mobile-alt"></i>
+                </div>
+                <div class="tech-label">WebView</div>
+            </div>
+            <div class="tech-item">
+                <div class="tech-icon">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <div class="tech-label">imgBB</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Data pengguna
+        let userData = {
+            phone: "",
+            photoFile: null,
+            photoUrl: ""
+        };
+        
+        // Elemen DOM
+        const phoneInput = document.getElementById('phone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadTrigger = document.getElementById('uploadTrigger');
+        const photoPreview = document.getElementById('photoPreview');
+        const previewImage = document.getElementById('previewImage');
+        const saveBtn = document.getElementById('saveBtn');
+        const profileForm = document.getElementById('profileForm');
+        
+        // Parse parameter URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialPhone = urlParams.get('phone');
+        const imgbbKey = urlParams.get('imgbbKey');
 
-<h2>Daftar Pesanan Pending</h2>
-<div id="orderList"></div>
+        // Fungsi untuk mengirim data ke App Inventor
+        function sendToAppInventor(data) {
+            console.log("Mengirim data:", data);
+            
+            // Method 1: Untuk WebView Kodular/Android
+            if (window.android && window.android.receiveFromWeb) {
+                try {
+                    window.android.receiveFromWeb(JSON.stringify(data));
+                    console.log("Data terkirim via Android WebView");
+                    return true;
+                } catch (e) {
+                    console.error("Gagal mengirim via Android:", e);
+                }
+            }
+            
+            // Method 2: Untuk iOS
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosHandler) {
+                try {
+                    window.webkit.messageHandlers.iosHandler.postMessage(data);
+                    console.log("Data terkirim via iOS WebView");
+                    return true;
+                } catch (e) {
+                    console.error("Gagal mengirim via iOS:", e);
+                }
+            }
+            
+            // Method 3: Untuk debugging di browser
+            console.log("Data untuk App Inventor (browser):", data);
+            return false;
+        }
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-<script>
-  function getParam(key) {
-    const url = new URL(window.location.href);
-    return url.searchParams.get(key);
-  }
-
-  const firebaseConfig = {
-    apiKey: getParam("apiKey"),
-    authDomain: getParam("authDomain"),
-    databaseURL: getParam("databaseURL"),
-    projectId: getParam("projectId"),
-  };
-
-  if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
-    document.body.innerHTML = "<p style='color:red; text-align:center;'>Konfigurasi Firebase tidak lengkap di URL.</p>";
-    throw new Error("Missing Firebase config");
-  }
-
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-
-  const orderListDiv = document.getElementById("orderList");
-
-  function loadOrders() {
-    db.ref("orders").on("value", async snapshot => {
-      orderListDiv.innerHTML = "";
-      const orders = snapshot.val();
-
-      if (orders) {
-        for (const [orderId, order] of Object.entries(orders)) {
-          if (order.status === "pending") {
-            const userId = order.userID;
-            let photoUrl = "https://i.ibb.co/5r4kPYC/default-user.png";
-            let userName = order.userName || "Penumpang";
-
+        // Fungsi untuk menerima file dari WebView
+        window.receiveFileFromApp = function(fileData) {
             try {
-              const userSnap = await db.ref("Users/" + userId).once("value"); // <- sudah benar
-              const userData = userSnap.val();
-              console.log("UserID:", userId);
-              console.log("User Data:", userData);
+                console.log("Menerima file dari native:", fileData);
+                
+                // Konversi base64 ke File object
+                const file = base64ToFile(fileData.base64, fileData.name, fileData.type);
+                userData.photoFile = file;
+                
+                // Tampilkan preview
+                previewImage.src = URL.createObjectURL(file);
+                previewImage.style.display = 'block';
+                photoPreview.querySelector('i').style.display = 'none';
+                
+                return true;
+            } catch (e) {
+                console.error("Gagal memproses file:", e);
+                return false;
+            }
+        };
 
-              if (userData) {
-                if (userData.photoUrl) photoUrl = userData.photoUrl;
-                if (userData.userName) userName = userData.userName;
-              }
-            } catch (err) {
-              console.warn("Gagal mengambil data user:", err);
+        // Helper: Konversi base64 ke File
+        function base64ToFile(base64, filename, mimeType) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            return new File([byteArray], filename, {type: mimeType});
+        }
+
+        // Isi nilai awal jika ada di URL
+        if (initialPhone) {
+            phoneInput.value = initialPhone.replace(/\D/g, '');
+            userData.phone = initialPhone;
+        }
+
+        // Event listener untuk upload foto (kompatibel WebView dan browser)
+        uploadTrigger.addEventListener('click', function() {
+            console.log("Tombol upload diklik");
+            
+            // Coba deteksi environment
+            const isWebView = window.android || (window.webkit && window.webkit.messageHandlers);
+            
+            if (isWebView) {
+                console.log("Menggunakan WebView, memanggil native picker");
+                
+                // Method 1: Android WebView
+                if (window.android && window.android.requestFilePicker) {
+                    window.android.requestFilePicker();
+                } 
+                // Method 2: iOS WebView
+                else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.filePickerHandler) {
+                    window.webkit.messageHandlers.filePickerHandler.postMessage({});
+                }
+                // Fallback untuk WebView tanpa implementasi khusus
+                else {
+                    console.log("WebView tanpa file picker khusus, coba gunakan input file");
+                    setTimeout(() => fileInput.click(), 100);
+                }
+            } else {
+                console.log("Menggunakan browser biasa, gunakan input file standar");
+                fileInput.click();
+            }
+        });
+
+        // Handler untuk input file standar (browser)
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            console.log("File dipilih via input standar:", file.name);
+
+            // Validasi
+            if (!file.type.match('image.*')) {
+                alert('Hanya file gambar yang diizinkan (JPEG, PNG)');
+                return;
             }
 
-            const item = document.createElement("div");
-            item.className = "order-item";
-            item.innerHTML = `
-              <div class="profile">
-                <img src="${photoUrl}" alt="Foto Penumpang">
-                <div>${userName}</div>
-              </div>
-              <div class="order-info">
-                <p>${order.from}</p>
-                <p>${order.to}</p>
-                <div class="horizontal">
-                  <span>${order.distance}</span>
-                  <span>${order.duration}</span>
-                  <span>Rp ${order.totalPrice}</span>
-                </div>
-                <button class="btn-detail" onclick="lihatDetail('${orderId}')">Lihat Detail</button>
-              </div>
-            `;
-            orderListDiv.appendChild(item);
-          }
-        }
-      } else {
-        orderListDiv.innerHTML = "<p style='text-align:center;'>Tidak ada pesanan tersedia.</p>";
-      }
-    });
-  }
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Ukuran file maksimal 5MB');
+                return;
+            }
 
-  function lihatDetail(orderId) {
-    alert("Order ID: " + orderId);
-  }
+            // Simpan file
+            userData.photoFile = file;
+            
+            // Tampilkan preview
+            previewImage.src = URL.createObjectURL(file);
+            previewImage.style.display = 'block';
+            photoPreview.querySelector('i').style.display = 'none';
+        });
 
-  loadOrders();
-</script>
+        // Format input nomor HP
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+            if (this.value.length > 15) {
+                this.value = this.value.slice(0, 15);
+            }
+            userData.phone = this.value;
+        });
 
+        // Submit form
+        profileForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log("Form disubmit");
+            
+            // Validasi
+            userData.phone = phoneInput.value.trim();
+            if (!userData.phone) {
+                alert('Harap isi nomor HP');
+                return;
+            }
+
+            if (!userData.photoFile) {
+                alert('Harap pilih foto profil');
+                return;
+            }
+
+            if (!imgbbKey) {
+                const errorMsg = "API Key imgBB tidak ditemukan";
+                sendToAppInventor({
+                    status: "error",
+                    message: errorMsg
+                });
+                alert(errorMsg);
+                return;
+            }
+
+            // Tampilkan loading
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+            try {
+                // Upload foto ke imgBB
+                const formData = new FormData();
+                formData.append('image', userData.photoFile);
+                formData.append('key', imgbbKey);
+
+                console.log("Mengupload foto ke imgBB...");
+                const response = await fetch('https://api.imgbb.com/1/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                console.log("Hasil upload:", result);
+
+                if (!result.success) {
+                    throw new Error(result.error?.message || 'Upload foto gagal');
+                }
+
+                userData.photoUrl = result.data.url;
+                console.log("Foto berhasil diupload:", userData.photoUrl);
+
+                // Kirim data ke App Inventor
+                const dataToSend = {
+                    status: "success",
+                    phone: userData.phone,
+                    photoUrl: userData.photoUrl,
+                    timestamp: new Date().toISOString()
+                };
+
+                if (!sendToAppInventor(dataToSend)) {
+                    throw new Error("Gagal mengirim data ke App Inventor");
+                }
+
+                alert('Profil berhasil disimpan!\nNomor: ' + userData.phone);
+
+            } catch (error) {
+                console.error('Error:', error);
+                sendToAppInventor({
+                    status: "error",
+                    message: error.message,
+                    phone: userData.phone || ""
+                });
+                alert('Gagal menyimpan: ' + error.message);
+            } finally {
+                // Reset tombol
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Simpan Profil';
+            }
+        });
+
+        // Fungsi untuk debugging
+        window.getUserData = function() {
+            return userData;
+        };
+    </script>
 </body>
 </html>
