@@ -358,6 +358,16 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
         
+        .distance-warning {
+            background: #ffedd5;
+            color: #9a3412;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
         @media (max-width: 768px) {
             .orders-container {
                 grid-template-columns: 1fr;
@@ -390,15 +400,16 @@
         <div class="notification-overlay" id="notificationOverlay">
             <div class="close-notification" id="closeNotification">×</div>
             <div class="notification-card">
-                <div class="notification-header">PESANAN DEKAT!</div>
+                <div class="notification-header">DETAIL PESANAN</div>
                 <div class="map-container" id="map"></div>
                 <div class="notification-content">
-                    <div class="notification-title">Ambil Pesanan Sekarang</div>
+                    <div class="notification-title">Informasi Pesanan</div>
+                    <div id="distanceWarning" class="distance-warning" style="display: none;"></div>
                     <div class="notification-info" id="notificationInfo">
                         <!-- Notification content will be inserted here -->
                     </div>
                     <div class="action-buttons">
-                        <button class="btn btn-cancel" id="btnCancel">❌ Batal</button>
+                        <button class="btn btn-cancel" id="btnCancel">❌ Kembali</button>
                         <button class="btn btn-take" id="btnTake">✅ Ambil Order</button>
                     </div>
                 </div>
@@ -443,6 +454,7 @@
         let currentOrder = null;
         let map = null;
         let watchId = null;
+        let currentDistance = 0;
         
         // Get driver's location (only for display, not saved to Firebase)
         function getDriverLocation() {
@@ -555,7 +567,7 @@
             }
         }
         
-        // Show notification when order is nearby
+        // Show notification with order details
         function showNotification(order) {
             if (!order) return;
             
@@ -571,19 +583,24 @@
                     year: 'numeric'
                 }) : 'Waktu tidak tersedia';
             
-            // Calculate distance to pickup
-            let distanceInfo = '';
-            let distanceValue = null;
+            // Calculate distance to pickup if possible
+            const distanceWarning = document.getElementById('distanceWarning');
+            distanceWarning.style.display = 'none';
             
             if (driverPosition && order.from_latlng) {
                 const [lat, lng] = order.from_latlng.split(',');
-                distanceValue = calculateDistance(
+                currentDistance = calculateDistance(
                     driverPosition.lat,
                     driverPosition.lng,
                     parseFloat(lat),
                     parseFloat(lng)
                 );
-                distanceInfo = ` (${distanceValue.toFixed(1)} km dari Anda)`;
+                
+                if (currentDistance > 2) {
+                    distanceWarning.style.display = 'block';
+                    distanceWarning.textContent = 
+                        `⚠️ Jarak pesanan ${currentDistance.toFixed(1)} km dari lokasi Anda`;
+                }
             }
             
             // Set notification content
@@ -645,6 +662,7 @@
         function closeNotification() {
             document.getElementById('notificationOverlay').classList.remove('active');
             currentOrder = null;
+            currentDistance = 0;
         }
         
         // Get vehicle icon based on type
@@ -663,6 +681,13 @@
         // Accept order
         function acceptOrder() {
             if (!currentOrder || !driverPosition) return;
+            
+            // Show confirmation for long distance orders
+            if (currentDistance > 5) {
+                if (!confirm(`Pesanan ini berjarak ${currentDistance.toFixed(1)} km. Apakah Anda yakin ingin mengambil?`)) {
+                    return;
+                }
+            }
             
             // Stop watching position before redirect
             if (watchId) {
@@ -702,24 +727,6 @@
                     console.error("Error updating order:", error);
                     alert("Gagal mengambil pesanan. Silakan coba lagi.");
                 });
-        }
-        
-        // Cancel order
-        function cancelOrder() {
-            if (!currentOrder) return;
-            
-            // Remove driver info from order
-            database.ref(`orders/${currentOrder.key}`).update({
-                driverID: null,
-                driverLocation: null
-            });
-            
-            // Update driver status
-            database.ref(`drivers/${driverID}`).update({
-                status: "available"
-            });
-            
-            closeNotification();
         }
         
         // Create order card
@@ -767,26 +774,9 @@
                 </div>
             `;
             
-            // Add click event to show notification if nearby
+            // Add click event to show order details
             card.addEventListener('click', () => {
-                // Check distance
-                if (driverPosition && order.from_latlng) {
-                    const [lat, lng] = order.from_latlng.split(',');
-                    const distance = calculateDistance(
-                        driverPosition.lat,
-                        driverPosition.lng,
-                        parseFloat(lat),
-                        parseFloat(lng)
-                    );
-                    
-                    if (distance < 2) {
-                        showNotification(order);
-                    } else {
-                        alert(`Pesanan terlalu jauh (${distance.toFixed(1)} km). Silakan pilih pesanan lain.`);
-                    }
-                } else {
-                    alert("Lokasi tidak tersedia. Pastikan GPS aktif untuk fitur ini.");
-                }
+                showNotification(order);
             });
             
             return card;
@@ -848,7 +838,7 @@
         }
         
         // Event listeners
-        document.getElementById('btnCancel').addEventListener('click', cancelOrder);
+        document.getElementById('btnCancel').addEventListener('click', closeNotification);
         document.getElementById('btnTake').addEventListener('click', acceptOrder);
         document.getElementById('closeNotification').addEventListener('click', closeNotification);
         
