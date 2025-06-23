@@ -33,6 +33,7 @@
     .profile div {
       font-size: 13px;
       margin-top: 5px;
+      color: gray;
       word-break: break-word;
     }
 
@@ -43,6 +44,23 @@
     .order-info p {
       margin: 4px 0;
       font-size: 14px;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+    .horizontal {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+    }
+
+    .horizontal span {
+      font-size: 13px;
+      background: #e9e9e9;
+      padding: 4px 8px;
+      border-radius: 6px;
     }
 
     .btn-detail {
@@ -78,7 +96,6 @@
     projectId: getParam("projectId"),
   };
 
-  // Validasi config
   if (!firebaseConfig.apiKey || !firebaseConfig.databaseURL) {
     document.body.innerHTML = "<p style='color:red; text-align:center;'>Konfigurasi Firebase tidak lengkap di URL.</p>";
     throw new Error("Missing Firebase config");
@@ -102,14 +119,16 @@
             let userName = order.userName || "Penumpang";
 
             try {
-              const userSnap = await db.ref("Users/" + userId).once("value");
+              const userRef = db.ref("Users/phone/" + userId);
+              const userSnap = await userRef.once("value");
               const userData = userSnap.val();
+
               if (userData) {
-                photoUrl = userData.photoUrl || photoUrl;
-                userName = userData.userName || userName;
+                if (userData.photoUrl) photoUrl = userData.photoUrl;
+                if (userData.userName) userName = userData.userName;
               }
             } catch (err) {
-              console.warn("Gagal mengambil foto pengguna:", err);
+              console.warn("Gagal mengambil data user:", err);
             }
 
             const card = document.createElement("div");
@@ -120,12 +139,13 @@
                 <div>${userName}</div>
               </div>
               <div class="order-info">
-                <p><strong>Jemput:</strong> ${order.from}</p>
-                <p><strong>Tujuan:</strong> ${order.to}</p>
-                <p><strong>Jarak:</strong> ${order.distance}</p>
-                <p><strong>Durasi:</strong> ${order.duration}</p>
-                <p><strong>Harga:</strong> Rp ${order.totalPrice}</p>
-                <p><strong>Kendaraan:</strong> ${order.vehicle}</p>
+                <p class="bold">Jemput: ${order.from}</p>
+                <p>Tujuan: ${order.to}</p>
+                <div class="horizontal">
+                  <span>${order.distance}</span>
+                  <span>${order.duration}</span>
+                  <span>Rp ${order.totalPrice}</span>
+                </div>
                 <button class="btn-detail" onclick="lihatDetail('${orderId}')">Lihat Detail</button>
               </div>
             `;
@@ -140,7 +160,6 @@
 
   function lihatDetail(orderId) {
     alert("Order ID: " + orderId);
-    // Redirect ke detail kalau ingin: window.location.href = `detail.html?order_id=${orderId}`;
   }
 
   loadOrders();
