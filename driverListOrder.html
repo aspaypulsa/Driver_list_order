@@ -1,1 +1,241 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar Orderan Driver</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f4f4f4;
+    }
+    header {
+      padding: 10px;
+      background-color: #004aad;
+      color: white;
+      text-align: center;
+      font-size: 18px;
+    }
+    .order-card {
+      background: white;
+      margin: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .profile {
+      text-align: center;
+    }
+    .profile img {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .profile-name {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .order-details {
+      flex: 1;
+    }
+    .alamat {
+      font-weight: bold;
+    }
+    .info-horizontal {
+      display: flex;
+      gap: 10px;
+      margin-top: 6px;
+      font-size: 14px;
+      color: #555;
+    }
+    #bottomSheet {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    #bottomSheet.show {
+      transform: translateY(0);
+    }
+    #map {
+      width: 100%;
+      height: 60vh;
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+    .sheet-header {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    #sheetPhoto img {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+    }
+    .profile-name {
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+    #closeSheet {
+      margin-top: 12px;
+      background: red;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <header>Daftar Orderan</header>
+  <div id="orderList"></div>  <div id="bottomSheet">
+    <div id="map"></div>
+    <div class="sheet-header">
+      <div class="profile" id="sheetPhoto">
+        <img src="">
+        <div class="profile-name" id="sheetName">-</div>
+      </div>
+      <div>
+        <div class="alamat" id="sheetFrom">Alamat Jemput</div>
+        <div id="sheetTo">Alamat Antar</div>
+      </div>
+    </div>
+    <div class="info-horizontal">
+      <div id="sheetDistance">🛣 0 km</div>
+      <div id="sheetDuration">⏱ 0 min</div>
+      <div id="sheetHarga">💰 Rp0</div>
+    </div>
+    <button id="closeSheet">Tutup</button>
+  </div>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const driverID = urlParams.get("driverID");
+    const driverName = urlParams.get("driverName");
+    const mapKey = urlParams.get("mapKey");
+    const firebaseURL = urlParams.get("firebase_url") || "https://chatting-87e87-default-rtdb.firebaseio.com";
 
+    const firebaseConfig = {
+      apiKey: "dummy",
+      databaseURL: firebaseURL
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const sheet = document.getElementById("bottomSheet");
+    const orderList = document.getElementById("orderList");
+
+    let map, directionsService, directionsRenderer;
+
+    function loadGoogleMapsScript(callback) {
+      if (!mapKey) {
+        alert("API key Google Maps tidak ditemukan di parameter URL.");
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}`;
+      script.defer = true;
+      script.onload = callback;
+      document.head.appendChild(script);
+    }
+
+    function initMap() {
+      map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 14,
+        center: { lat: 1.52, lng: 124.85 },
+        disableDefaultUI: true
+      });
+      directionsService = new google.maps.DirectionsService();
+      directionsRenderer = new google.maps.DirectionsRenderer({ map });
+    }
+
+    function showBottomSheet(data) {
+      document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || 'https://via.placeholder.com/70';
+      document.getElementById("sheetName").innerText = data.userName || '-';
+      document.getElementById("sheetFrom").innerText = data.from || '-';
+      document.getElementById("sheetTo").innerText = data.to || '-';
+      document.getElementById("sheetDistance").innerText = "🛣 " + (data.distance || '0 km');
+      document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
+      document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
+
+      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
+      const latDriver = data.lat_driver || "1.52481";
+      const lngDriver = data.lng_driver || "124.85412";
+
+      const origin = new google.maps.LatLng(parseFloat(latDriver), parseFloat(lngDriver));
+      const destination = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+
+      directionsService.route({
+        origin: origin,
+        destination: destination,
+        travelMode: 'DRIVING'
+      }, (response, status) => {
+        if (status === 'OK') {
+          directionsRenderer.setDirections(response);
+        } else {
+          console.warn("Gagal menampilkan rute:", status);
+        }
+      });
+
+      sheet.classList.add("show");
+    }
+
+    document.getElementById("closeSheet").addEventListener("click", () => {
+      sheet.classList.remove("show");
+    });
+
+    function loadOrders() {
+      db.ref("orders").on("value", snapshot => {
+        orderList.innerHTML = "";
+        snapshot.forEach(child => {
+          const data = child.val();
+          if (data.status !== "pending") return;
+          if (driverID && data.driverID !== driverID) return;
+
+          const card = document.createElement("div");
+          card.className = "order-card";
+          card.innerHTML = `
+            <div class="profile">
+              <img src="${data.photo_url || 'https://via.placeholder.com/50'}" />
+              <div class="profile-name">${data.userName || 'Tanpa Nama'}</div>
+            </div>
+            <div class="order-details">
+              <div class="alamat">${data.from || '-'}</div>
+              <div>${data.to || '-'}</div>
+              <div class="info-horizontal">
+                <div>🛣 ${data.distance || '0'} </div>
+                <div>⏱ ${data.duration || '0'} </div>
+                <div>💰 Rp${data.totalPrice || '0'}</div>
+              </div>
+            </div>
+          `;
+          card.addEventListener("click", () => {
+            showBottomSheet(data);
+          });
+          orderList.appendChild(card);
+        });
+      });
+    }
+
+    loadGoogleMapsScript(() => {
+      initMap();
+      loadOrders();
+    });
+  </script></body>
+</html>
