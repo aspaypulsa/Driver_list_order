@@ -174,8 +174,9 @@
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
       const [fromLat, fromLng] = data.from_latlng.split(",");
-      const origin = new google.maps.LatLng(driverLat, driverLng);
-      const destination = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+      const [toLat, toLng] = data.to_latlng.split(",");
+const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
 
       directionsService.route({
         origin: origin,
