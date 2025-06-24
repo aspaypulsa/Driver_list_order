@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daftar Orderan Driver</title>
   <style>
     body {
@@ -92,26 +91,8 @@
       font-weight: bold;
       margin-top: 6px;
     }
-    #progressBar {
-      width: 100%;
-      height: 6px;
-      background: #ddd;
-      border-radius: 5px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-    #progressInner {
-      height: 100%;
-      width: 0%;
-      background: #f00;
-      animation: progressAnim 10s linear forwards;
-    }
-    @keyframes progressAnim {
-      from { width: 0%; }
-      to { width: 100%; }
-    }
     #closeSheet {
-      margin-top: auto;
+      margin-top: 12px;
       background: red;
       color: white;
       padding: 10px;
@@ -124,11 +105,8 @@
 </head>
 <body>
   <header>Daftar Orderan</header>
-  <div id="orderList"></div>
-
-  <div id="bottomSheet">
+  <div id="orderList"></div>  <div id="bottomSheet">
     <div id="map"></div>
-    <div id="progressBar"><div id="progressInner"></div></div>
     <div class="sheet-header">
       <div class="profile" id="sheetPhoto">
         <img src="">
@@ -145,30 +123,15 @@
       <div id="sheetHarga">💰 Rp0</div>
     </div>
     <button id="closeSheet">Tutup</button>
-  </div>
-
-  <audio id="notifSound" loop>
-    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg" />
-  </audio>
-
-  <!-- Firebase & Maps -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
-  <script>
-    // Ambil parameter URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const mapKey = urlParams.get("mapKey");
-    const firebase_url = urlParams.get("firebase_url");
-
-    if (!mapKey || !firebase_url) {
-      alert("Parameter 'mapKey' atau 'firebase_url' belum dimasukkan di URL.");
-    }
-
+  </div>  <!-- Firebase & Maps -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs"></script>  <script>
     const firebaseConfig = {
-      apiKey: "dummy",
-      authDomain: "dummy.firebaseapp.com",
-      databaseURL: firebase_url,
-      projectId: "dummy",
+      apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
+      authDomain: "chatting-87e87.firebaseapp.com",
+      databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
+      projectId: "chatting-87e87",
+      storageBucket: "chatting-87e87.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:abc123"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -177,13 +140,15 @@
     const sheet = document.getElementById("bottomSheet");
     const orderList = document.getElementById("orderList");
 
-    let map, directionsService, directionsRenderer, notifTimeout;
+    let map, directionsService, directionsRenderer, driverLat = null, driverLng = null;
 
-    function loadGoogleMapsScript(callback) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}&callback=${callback.name}`;
-      script.async = true;
-      document.head.appendChild(script);
+    function haversineDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const toRad = x => x * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
     }
 
     function initMap() {
@@ -193,41 +158,10 @@
         disableDefaultUI: true
       });
       directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: false });
-      loadOrders(); // baru load order setelah peta siap
-    }
-
-    function haversine(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a =
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
-    }
-
-    function playSoundLoop() {
-      const audio = document.getElementById("notifSound");
-      if (audio) audio.play().catch(() => {});
-    }
-
-    function stopSound() {
-      const audio = document.getElementById("notifSound");
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    }
-
-    function autoCloseSheetAfterDelay() {
-      clearTimeout(notifTimeout);
-      notifTimeout = setTimeout(() => {
-        sheet.classList.remove("show");
-        stopSound();
-      }, 10000);
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: false
+      });
     }
 
     function showBottomSheet(data) {
@@ -239,12 +173,9 @@
       document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
-      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",").map(Number);
-      const latDriver = parseFloat(data.lat_driver);
-      const lngDriver = parseFloat(data.lng_driver);
-
-      const origin = new google.maps.LatLng(latDriver, lngDriver);
-      const destination = new google.maps.LatLng(fromLat, fromLng);
+      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
+      const origin = new google.maps.LatLng(driverLat, driverLng);
+      const destination = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
 
       directionsService.route({
         origin: origin,
@@ -257,15 +188,10 @@
       });
 
       sheet.classList.add("show");
-      document.getElementById("progressInner").style.animation = "progressAnim 10s linear forwards";
-      playSoundLoop();
-      autoCloseSheetAfterDelay();
     }
 
     document.getElementById("closeSheet").addEventListener("click", () => {
       sheet.classList.remove("show");
-      stopSound();
-      clearTimeout(notifTimeout);
     });
 
     function loadOrders() {
@@ -292,24 +218,28 @@
               </div>
             </div>
           `;
+
+          const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
+          const distanceToPickup = haversineDistance(driverLat, driverLng, parseFloat(fromLat), parseFloat(fromLng));
+
+          if (distanceToPickup < 2) {
+            showBottomSheet(data);
+          }
+
           card.addEventListener("click", () => {
             showBottomSheet(data);
           });
-          orderList.appendChild(card);
 
-          // AUTO DETECT JARAK < 2KM
-          const [fromLat, fromLng] = (data.from_latlng || "").split(",").map(Number);
-          const latDriver = parseFloat(data.lat_driver);
-          const lngDriver = parseFloat(data.lng_driver);
-          if (!isNaN(fromLat) && !isNaN(latDriver)) {
-            const jarak = haversine(fromLat, fromLng, latDriver, lngDriver);
-            if (jarak < 2) showBottomSheet(data);
-          }
+          orderList.appendChild(card);
         });
       });
     }
 
-    loadGoogleMapsScript(initMap);
-  </script>
-</body>
+    navigator.geolocation.getCurrentPosition(pos => {
+      driverLat = pos.coords.latitude;
+      driverLng = pos.coords.longitude;
+      initMap();
+      loadOrders();
+    });
+  </script></body>
 </html>
