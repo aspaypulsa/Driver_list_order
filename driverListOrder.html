@@ -53,6 +53,7 @@
     let aktif = false;
     let lokasiDriver = null;
     let orderDipilih = null;
+    let currentMapUrl = "";
 
     document.getElementById('toggleAktif').addEventListener('change', e => {
       aktif = e.target.checked;
@@ -99,7 +100,7 @@
           `;
           orderList.appendChild(card);
 
-          if (jarak <= 2) {
+          if (jarak <= 2 && (!orderDipilih || orderDipilih.id !== id)) {
             orderDipilih = { id, data: o };
             tampilkanBottomSheet(o);
           }
@@ -119,7 +120,11 @@
       const [latFrom, lngFrom] = o.from_latlng.split(',');
       const [latTo, lngTo] = o.to_latlng.split(',');
       const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}`;
-      document.getElementById('mapFrame').src = url;
+
+      if (url !== currentMapUrl) {
+        document.getElementById('mapFrame').src = url;
+        currentMapUrl = url;
+      }
       sheet.style.display = 'block';
     }
 
