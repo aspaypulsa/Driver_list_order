@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f2f2f2; }
-    h2 { background: #007bff; color: white; padding: 1em; text-align: center; margin: 0; }
+    #mapFrame { width: 100%; height: 300px; border: none; display: block; }
     .toggle-container { padding: 1em; text-align: center; background: white; }
     .order-list { padding: 1em; }
     .order-card {
@@ -23,24 +23,19 @@
       border-radius: 20px 20px 0 0; padding: 1em; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
       display: none; z-index: 10;
     }
-    .map-container { width: 100%; height: 200px; margin: 1em 0; border-radius: 10px; overflow: hidden; }
     .bottom-sheet button { padding: 0.6em 1em; border: none; border-radius: 6px; margin-right: 1em; cursor: pointer; }
     .btn-batal { background: #dc3545; color: white; }
     .btn-ambil { background: #28a745; color: white; }
   </style>
 </head>
 <body>
-  <h2>Daftar Order</h2>
-  <div class="toggle-container">
+  <iframe id="mapFrame" allowfullscreen loading="lazy"></iframe>  <div class="toggle-container">
     <label>
       <input type="checkbox" id="toggleAktif"> Tampilkan Order Aktif
     </label>
   </div>
   <div class="order-list" id="orderList">Memuat order...</div>  <div class="bottom-sheet" id="bottomSheet">
     <div id="sheetContent"></div>
-    <div class="map-container">
-      <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy"></iframe>
-    </div>
     <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
     <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
   </div>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>  <script>
@@ -54,6 +49,7 @@
     let lokasiDriver = null;
     let orderDipilih = null;
     let currentMapUrl = "";
+    let orderDibatalkan = new Set();
 
     document.getElementById('toggleAktif').addEventListener('change', e => {
       aktif = e.target.checked;
@@ -62,7 +58,14 @@
     navigator.geolocation.watchPosition(pos => {
       lokasiDriver = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       if (aktif) muatOrder();
+      updatePeta();
     });
+
+    function updatePeta() {
+      if (!lokasiDriver) return;
+      const url = `https://www.google.com/maps/embed/v1/view?key=${mapKey}&center=${lokasiDriver.lat},${lokasiDriver.lng}&zoom=15&maptype=roadmap`;
+      document.getElementById('mapFrame').src = url;
+    }
 
     function haversine(lat1, lng1, lat2, lng2) {
       const toRad = x => x * Math.PI / 180;
@@ -74,13 +77,16 @@
     }
 
     function muatOrder() {
+      if (!lokasiDriver) return;
+
       db.ref('orders').once('value', snap => {
         const data = snap.val();
         const orderList = document.getElementById('orderList');
         orderList.innerHTML = '';
         for (const id in data) {
           const o = data[id];
-          if (o.status !== 'pending') continue;
+          if (o.status !== 'pending' || orderDibatalkan.has(id)) continue;
+
           const [latJemput, lngJemput] = o.from_latlng.split(',').map(Number);
           const jarak = haversine(lokasiDriver.lat, lokasiDriver.lng, latJemput, lngJemput);
 
@@ -117,18 +123,13 @@
         <p>${o.to}</p>
         <p>Telp: ${o.phone}</p>
       `;
-      const [latFrom, lngFrom] = o.from_latlng.split(',');
-      const [latTo, lngTo] = o.to_latlng.split(',');
-      const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}`;
-
-      if (url !== currentMapUrl) {
-        document.getElementById('mapFrame').src = url;
-        currentMapUrl = url;
-      }
       sheet.style.display = 'block';
     }
 
     function batalkanOrder() {
+      if (orderDipilih) {
+        orderDibatalkan.add(orderDipilih.id);
+      }
       document.getElementById('bottomSheet').style.display = 'none';
       orderDipilih = null;
     }
