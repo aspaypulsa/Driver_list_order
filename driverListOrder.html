@@ -74,166 +74,151 @@
             color: #666;
         }
         
-        .bottom-sheet {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: white;
-            border-top-left-radius: 15px;
-            border-top-right-radius: 15px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
-            padding: 15px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: 200;
-            max-height: 80vh;
-            overflow-y: auto;
-            touch-action: none;
+        .no-orders {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
         }
         
-        .bottom-sheet.active {
-            transform: translateY(0);
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
         }
         
-        .map-container {
-            width: 100%;
-            height: 200px;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 15px;
-            position: relative;
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
         }
-        
-        .map-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            pointer-events: none;
-            background-color: rgba(0,0,0,0.1);
-        }
-        
-        /* Dark mode untuk Google Maps */
-        .map-container iframe {
-            filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(90%);
-            border: none;
-        }
-        
-        /* ... (CSS lainnya tetap sama) ... */
     </style>
 </head>
 <body>
-    <!-- Konten HTML sebelumnya tetap sama -->
+    <div class="header">
+        <h1>Daftar Order</h1>
+    </div>
     
+    <div class="order-list" id="orderList">
+        <div class="loading">Memuat order...</div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script>
+        // Debugging: Tampilkan pesan di console bahwa script berjalan
+        console.log("Aplikasi driver mulai berjalan...");
+        
         // Parse URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const firebaseConfigParam = urlParams.get('firebaseConfig');
         const mapKey = urlParams.get('mapKey');
         
+        // Debugging: Tampilkan parameter yang diterima
+        console.log("Parameter URL:", {
+            firebaseConfig: firebaseConfigParam ? "Ada" : "Tidak Ada",
+            mapKey: mapKey ? "Ada" : "Tidak Ada"
+        });
+        
         if (!firebaseConfigParam || !mapKey) {
+            const errorMsg = !firebaseConfigParam && !mapKey 
+                ? "Parameter firebaseConfig dan mapKey tidak ditemukan di URL." 
+                : !firebaseConfigParam 
+                    ? "Parameter firebaseConfig tidak ditemukan di URL." 
+                    : "Parameter mapKey tidak ditemukan di URL.";
+            
             document.getElementById('orderList').innerHTML = `
-                <div class="no-orders">
-                    <p>Parameter firebaseConfig atau mapKey tidak ditemukan di URL.</p>
-                </div>
+                <div class="error-message">${errorMsg}</div>
             `;
-            throw new Error('Parameter firebaseConfig atau mapKey tidak ditemukan di URL.');
+            console.error(errorMsg);
+            throw new Error(errorMsg);
         }
         
-        // Initialize Firebase
-        const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
-        
-        // Perbaikan penting: Cek apakah Firebase sudah diinisialisasi sebelumnya
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        } else {
-            firebase.app(); // Jika sudah ada, gunakan yang sudah ada
-        }
-        
-        const database = firebase.database();
-        
-        // DOM elements
-        const orderList = document.getElementById('orderList');
-        const bottomSheet = document.getElementById('bottomSheet');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const acceptBtn = document.getElementById('acceptBtn');
-        const mapContainer = document.getElementById('mapContainer');
-        
-        // Variables
-        let currentPosition = null;
-        let watchId = null;
-        let currentOrder = null;
-        let ordersRef = null;
-        
-        // Initialize the app
-        function init() {
-            // Start watching position
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(
-                    position => {
-                        currentPosition = {
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        };
-                        checkDistanceToOrders();
-                    },
-                    error => {
-                        console.error('Error getting location:', error);
-                        // Tetap lanjut meski geolocation error
-                        loadOrders();
-                    },
-                    { enableHighAccuracy: true }
-                );
+        try {
+            // Initialize Firebase
+            const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
+            console.log("Firebase Config:", firebaseConfig);
+            
+            // Cek apakah Firebase sudah diinisialisasi
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+                console.log("Firebase berhasil diinisialisasi");
             } else {
-                console.error('Geolocation is not supported by this browser.');
-                loadOrders();
+                firebase.app(); // Gunakan yang sudah ada
+                console.log("Firebase sudah diinisialisasi sebelumnya");
             }
             
-            // Set up event listeners
-            cancelBtn.addEventListener('click', closeBottomSheet);
-            acceptBtn.addEventListener('click', acceptOrder);
+            const database = firebase.database();
             
-            // Mencegah scroll pada bottom sheet
-            bottomSheet.addEventListener('touchmove', function(e) {
-                e.preventDefault();
-            }, { passive: false });
+            // Debugging: Coba baca data langsung dari root untuk testing
+            database.ref().once('value')
+                .then(snapshot => {
+                    console.log("Data testing dari Firebase root:", snapshot.val());
+                })
+                .catch(error => {
+                    console.error("Error testing Firebase connection:", error);
+                });
+            
+            // Load orders
+            loadOrders();
+            
+        } catch (error) {
+            console.error("Error inisialisasi Firebase:", error);
+            document.getElementById('orderList').innerHTML = `
+                <div class="error-message">Gagal menginisialisasi Firebase: ${error.message}</div>
+            `;
         }
         
-        // Fungsi baru untuk memuat orders
         function loadOrders() {
-            ordersRef = database.ref('orders');
-            ordersRef.orderByChild('status').equalTo('pending').on('value', snapshot => {
-                const orders = snapshot.val();
-                renderOrders(orders);
-            }, error => {
-                console.error('Error loading orders:', error);
-                orderList.innerHTML = `
-                    <div class="no-orders">
-                        <p>Gagal memuat data order. Silakan coba lagi.</p>
-                    </div>
-                `;
-            });
+            console.log("Memulai memuat orders...");
+            
+            const orderList = document.getElementById('orderList');
+            orderList.innerHTML = '<div class="loading">Memuat order...</div>';
+            
+            const ordersRef = firebase.database().ref('orders');
+            
+            // Debugging: Tampilkan path yang digunakan
+            console.log("Mengambil data dari path:", ordersRef.toString());
+            
+            ordersRef.orderByChild('status').equalTo('pending').once('value')
+                .then(snapshot => {
+                    const orders = snapshot.val();
+                    console.log("Data order yang diterima dari Firebase:", orders);
+                    
+                    if (!orders || Object.keys(orders).length === 0) {
+                        orderList.innerHTML = `
+                            <div class="no-orders">
+                                <p>Tidak ada order yang tersedia</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    renderOrders(orders);
+                })
+                .catch(error => {
+                    console.error("Error memuat orders:", error);
+                    orderList.innerHTML = `
+                        <div class="error-message">
+                            Gagal memuat data order. Silakan cek koneksi internet Anda.
+                            <br><br>
+                            Detail Error: ${error.message}
+                        </div>
+                    `;
+                });
         }
         
-        // Render orders to the list
         function renderOrders(orders) {
-            if (!orders) {
-                orderList.innerHTML = `
-                    <div class="no-orders">
-                        <p>Tidak ada order yang tersedia</p>
-                    </div>
-                `;
-                return;
-            }
-            
+            console.log("Merender orders:", orders);
+            const orderList = document.getElementById('orderList');
             orderList.innerHTML = '';
             
             Object.entries(orders).forEach(([orderId, order]) => {
-                // Pastikan semua field yang diperlukan ada
-                if (!order.from_latlng || !order.to_latlng) {
-                    console.warn('Order data incomplete:', order);
+                console.log("Memproses order:", orderId, order);
+                
+                // Validasi data order
+                if (!order) {
+                    console.warn("Order kosong:", orderId);
                     return;
                 }
                 
@@ -241,80 +226,39 @@
                 orderElement.className = 'order-card';
                 orderElement.dataset.orderId = orderId;
                 
-                const fromLatLng = order.from_latlng.split(',');
-                const distance = currentPosition ? calculateDistance(
-                    currentPosition.lat,
-                    currentPosition.lng,
-                    parseFloat(fromLatLng[0]),
-                    parseFloat(fromLatLng[1])
-                ) : 0;
+                // Data default jika field tidak ada
+                const orderData = {
+                    photo_url: order.photo_url || 'https://via.placeholder.com/60',
+                    userName: order.userName || 'Pelanggan',
+                    from: order.from || 'Alamat jemput tidak tersedia',
+                    distance: order.distance || '0 km',
+                    duration: order.duration || '0 menit',
+                    totalPrice: order.totalPrice || 'Rp0'
+                };
                 
                 orderElement.innerHTML = `
-                    <img src="${order.photo_url || 'https://via.placeholder.com/60'}" class="profile-photo" alt="Profile">
+                    <img src="${orderData.photo_url}" class="profile-photo" alt="Profile">
                     <div class="order-info">
-                        <div class="user-name">${order.userName || 'Tanpa Nama'}</div>
-                        <div class="pickup-address">${order.from || 'Alamat tidak tersedia'}</div>
+                        <div class="user-name">${orderData.userName}</div>
+                        <div class="pickup-address">${orderData.from}</div>
                         <div class="order-meta">
-                            <span>${order.distance || '0 km'}</span>
-                            <span>${order.duration || '0 min'}</span>
-                            <span>${order.totalPrice || 'Rp0'}</span>
+                            <span>${orderData.distance}</span>
+                            <span>${orderData.duration}</span>
+                            <span>${orderData.totalPrice}</span>
                         </div>
                     </div>
-                    ${currentPosition ? `<div class="distance-badge">${distance.toFixed(1)} km</div>` : ''}
                 `;
-                
-                orderElement.addEventListener('click', () => {
-                    currentOrder = { ...order, id: orderId };
-                    openBottomSheet(order);
-                });
                 
                 orderList.appendChild(orderElement);
             });
+            
+            console.log("Selesai merender orders");
         }
         
-        // Open bottom sheet with order details
-        function openBottomSheet(order) {
-            // Isi data order
-            document.getElementById('sheetPhoto').src = order.photo_url || 'https://via.placeholder.com/50';
-            document.getElementById('sheetName').textContent = order.userName || 'Tanpa Nama';
-            document.getElementById('sheetFrom').textContent = order.from || 'Alamat jemput tidak tersedia';
-            document.getElementById('sheetTo').textContent = order.to || 'Alamat tujuan tidak tersedia';
-            document.getElementById('sheetPhone').textContent = order.phone || 'Nomor tidak tersedia';
-            document.getElementById('sheetDistance').textContent = order.distance || '0 km';
-            document.getElementById('sheetDuration').textContent = order.duration || '0 min';
-            document.getElementById('sheetPrice').textContent = order.totalPrice || 'Rp0';
-            
-            // Load Google Maps dengan tampilan minimalis
-            const fromLatLng = order.from_latlng.split(',');
-            const toLatLng = order.to_latlng.split(',');
-            
-            let mapUrl = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}`;
-            mapUrl += `&origin=${currentPosition ? currentPosition.lat + ',' + currentPosition.lng : fromLatLng[0] + ',' + fromLatLng[1]}`;
-            mapUrl += `&destination=${toLatLng[0]},${toLatLng[1]}`;
-            mapUrl += `&waypoints=${fromLatLng[0]},${fromLatLng[1]}`;
-            mapUrl += '&mode=driving';
-            mapUrl += '&zoom=14';
-            mapUrl += '&maptype=roadmap';
-            
-            // Bersihkan map container dan tambahkan overlay
-            mapContainer.innerHTML = `
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    frameborder="0" 
-                    style="border:0" 
-                    src="${mapUrl}"
-                    allowfullscreen
-                    loading="lazy"
-                    referrerpolicy="no-referrer-when-downgrade"
-                ></iframe>
-                <div class="map-overlay"></div>
-            `;
-            
-            bottomSheet.classList.add('active');
-        }
-        
-        // ... (Fungsi lainnya tetap sama) ...
+        // Tambahkan event listener untuk memuat ulang jika perlu
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded");
+        });
     </script>
 </body>
 </html>
