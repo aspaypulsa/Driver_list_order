@@ -1,148 +1,140 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html>
 <head>
   <meta charset="UTF-8">
-  <title>Daftar Orderan</title>
+  <title>Daftar Order Driver</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
-      margin: 0;
-    }
-    h2 {
-      text-align: center;
-      background-color: #007bff;
-      color: white;
-      padding: 1em 0;
-      margin: 0;
-    }
-    .order-list {
-      padding: 1em;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; background: #f2f2f2; }
+    h2 { background: #007bff; color: white; padding: 1em; text-align: center; margin: 0; }
+    .toggle-container { padding: 1em; text-align: center; background: white; }
+    .order-list { padding: 1em; }
     .order-card {
-      background: white;
-      padding: 1em;
-      border-radius: 10px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 1em;
-      display: flex;
-      gap: 1em;
-      align-items: flex-start;
-    }
-    .order-info {
-      flex: 1;
+      background: white; border-radius: 12px; padding: 1em; margin-bottom: 1em;
+      display: flex; align-items: flex-start; gap: 1em; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
     .order-card img {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #007bff;
+      width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
     }
-    .order-card p {
-      margin: 0.3em 0;
+    .order-info { flex: 1; }
+    .order-info strong { display: block; font-weight: bold; margin-bottom: 0.3em; }
+    .order-footer { display: flex; justify-content: space-between; margin-top: 0.5em; font-size: 0.9em; }
+    .bottom-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; background: white;
+      border-radius: 20px 20px 0 0; padding: 1em; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+      display: none; z-index: 10;
     }
-    .ambil-btn {
-      margin-top: 0.5em;
-      padding: 0.5em 1em;
-      background: #28a745;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
+    .map-container { width: 100%; height: 200px; margin: 1em 0; border-radius: 10px; overflow: hidden; }
+    .bottom-sheet button { padding: 0.6em 1em; border: none; border-radius: 6px; margin-right: 1em; cursor: pointer; }
+    .btn-batal { background: #dc3545; color: white; }
+    .btn-ambil { background: #28a745; color: white; }
   </style>
 </head>
 <body>
+  <h2>Daftar Order</h2>
+  <div class="toggle-container">
+    <label>
+      <input type="checkbox" id="toggleAktif"> Tampilkan Order Aktif
+    </label>
+  </div>
+  <div class="order-list" id="orderList">Memuat order...</div>  <div class="bottom-sheet" id="bottomSheet">
+    <div id="sheetContent"></div>
+    <div class="map-container">
+      <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy"></iframe>
+    </div>
+    <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
+    <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
+  </div>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>  <script>
+    const params = new URLSearchParams(location.search);
+    const mapKey = params.get('mapKey');
+    const config = JSON.parse(decodeURIComponent(params.get('firebaseConfig')));
+    firebase.initializeApp(config);
+    const db = firebase.database();
 
-  <h2>Daftar Orderan (Pending)</h2>
-  <div class="order-list" id="orderList">Memuat data...</div>
+    let aktif = false;
+    let lokasiDriver = null;
+    let orderDipilih = null;
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    document.getElementById('toggleAktif').addEventListener('change', e => {
+      aktif = e.target.checked;
+    });
 
-  <script>
-    // Ambil konfigurasi Firebase dari URL
-    function getFirebaseConfig() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const configParam = urlParams.get('firebaseConfig');
-      if (!configParam) {
-        alert("Firebase config tidak ditemukan di URL");
-        return null;
-      }
-      try {
-        return JSON.parse(decodeURIComponent(configParam));
-      } catch (e) {
-        alert("Format konfigurasi Firebase salah");
-        return null;
-      }
+    navigator.geolocation.watchPosition(pos => {
+      lokasiDriver = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (aktif) muatOrder();
+    });
+
+    function haversine(lat1, lng1, lat2, lng2) {
+      const toRad = x => x * Math.PI / 180;
+      const R = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    const config = getFirebaseConfig();
-    if (config) {
-      firebase.initializeApp(config);
-      const db = firebase.database();
-      const orderListDiv = document.getElementById('orderList');
+    function muatOrder() {
+      db.ref('orders').once('value', snap => {
+        const data = snap.val();
+        const orderList = document.getElementById('orderList');
+        orderList.innerHTML = '';
+        for (const id in data) {
+          const o = data[id];
+          if (o.status !== 'pending') continue;
+          const [latJemput, lngJemput] = o.from_latlng.split(',').map(Number);
+          const jarak = haversine(lokasiDriver.lat, lokasiDriver.lng, latJemput, lngJemput);
 
-      db.ref('orders').on('value', snapshot => {
-        const data = snapshot.val();
-        orderListDiv.innerHTML = '';
-        if (!data) {
-          orderListDiv.innerHTML = 'Belum ada order.';
-          return;
-        }
-
-        const orders = Object.entries(data).filter(([id, order]) => order.status === 'pending');
-
-        if (orders.length === 0) {
-          orderListDiv.innerHTML = 'Tidak ada order yang tersedia.';
-          return;
-        }
-
-        orders.forEach(([id, order]) => {
           const card = document.createElement('div');
           card.className = 'order-card';
-
-          const img = document.createElement('img');
-          img.src = order.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png';
-
-          const info = document.createElement('div');
-          info.className = 'order-info';
-          info.innerHTML = `
-            <p><strong>Nama:</strong> ${order.userName}</p>
-            <p><strong>Dari:</strong> ${order.from}</p>
-            <p><strong>Tujuan:</strong> ${order.to}</p>
-            <p><strong>Jarak:</strong> ${order.distance}</p>
-            <p><strong>Durasi:</strong> ${order.duration}</p>
-            <p><strong>Harga:</strong> Rp ${order.totalPrice}</p>
-            <button class="ambil-btn" onclick="ambilOrder('${id}')">Ambil Order</button>
+          card.innerHTML = `
+            <img src="${o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png'}">
+            <div class="order-info">
+              <div style="text-align:center;margin-bottom:0.3em"><strong>${o.userName}</strong></div>
+              <strong>${o.from}</strong>
+              <div class="order-footer">
+                <span>${o.distance}</span>
+                <span>${o.duration}</span>
+                <span>Rp ${o.totalPrice}</span>
+              </div>
+            </div>
           `;
+          orderList.appendChild(card);
 
-          card.appendChild(img);
-          card.appendChild(info);
-          orderListDiv.appendChild(card);
-        });
+          if (jarak <= 2) {
+            orderDipilih = { id, data: o };
+            tampilkanBottomSheet(o);
+          }
+        }
       });
-
-      // Fungsi ambil order (update status)
-      window.ambilOrder = function(orderId) {
-        const konfirmasi = confirm("Ambil order ini?");
-        if (!konfirmasi) return;
-
-        const driverID = "DRIVER_ID_CONTOH"; // Ganti dengan driver ID yang login
-        db.ref('orders/' + orderId).update({
-          status: 'diambil',
-          driverID: driverID
-        }).then(() => {
-          alert("Order berhasil diambil.");
-        }).catch(error => {
-          alert("Gagal mengambil order: " + error.message);
-        });
-      }
     }
-  </script>
 
-</body>
+    function tampilkanBottomSheet(o) {
+      const sheet = document.getElementById('bottomSheet');
+      const content = document.getElementById('sheetContent');
+      content.innerHTML = `
+        <p><strong>${o.userName}</strong></p>
+        <p>${o.from}</p>
+        <p>${o.to}</p>
+        <p>Telp: ${o.phone}</p>
+      `;
+      const [latFrom, lngFrom] = o.from_latlng.split(',');
+      const [latTo, lngTo] = o.to_latlng.split(',');
+      const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}`;
+      document.getElementById('mapFrame').src = url;
+      sheet.style.display = 'block';
+    }
+
+    function batalkanOrder() {
+      document.getElementById('bottomSheet').style.display = 'none';
+      orderDipilih = null;
+    }
+
+    function ambilOrder() {
+      if (!orderDipilih) return;
+      db.ref('orders/' + orderDipilih.id).update({ status: 'di_ambil' });
+      if (window.AndroidInterface && window.AndroidInterface.setWebViewString) {
+        window.AndroidInterface.setWebViewString("di_ambil");
+      }
+      document.getElementById('bottomSheet').style.display = 'none';
+    }
+  </script></body>
 </html>
