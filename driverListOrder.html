@@ -15,7 +15,8 @@
       width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
     }
     .order-info { flex: 1; }
-    .order-info strong { display: block; font-weight: bold; margin-bottom: 0.3em; }
+    .order-info .nama { font-weight: bold; font-size: 1em; margin-bottom: 0.3em; text-align: center; }
+    .order-info .alamat { font-weight: bold; font-size: 0.9em; }
     .order-footer { display: flex; justify-content: space-between; margin-top: 0.5em; font-size: 0.9em; }
     .bottom-sheet {
       position: fixed; left: 0; right: 0; bottom: 0; background: white;
@@ -23,6 +24,10 @@
       display: none; z-index: 10;
     }
     .map-container { width: 100%; height: 300px; border-radius: 12px; overflow: hidden; margin-bottom: 1em; }
+    .bottom-sheet img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; }
+    .bottom-sheet .nama-penumpang { text-align: center; font-weight: bold; margin-top: 0.5em; }
+    .order-detail { margin: 1em 0; text-align: center; }
+    .order-summary { display: flex; justify-content: space-between; margin-top: 1em; font-size: 0.95em; }
     .bottom-sheet button { padding: 0.6em 1em; border: none; border-radius: 6px; margin-right: 1em; cursor: pointer; }
     .btn-batal { background: #dc3545; color: white; }
     .btn-ambil { background: #28a745; color: white; }
@@ -36,11 +41,16 @@
   </div>
   <div class="order-list" id="orderList">Memuat order...</div>  <div class="bottom-sheet" id="bottomSheet">
     <div class="map-container">
-      <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy"></iframe>
+      <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
-    <div id="sheetContent"></div>
-    <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
-    <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
+    <img id="fotoPenumpang" src="" alt="Foto Penumpang">
+    <div class="nama-penumpang" id="namaPenumpang"></div>
+    <div class="order-detail" id="sheetContent"></div>
+    <div class="order-summary" id="ringkasanOrder"></div>
+    <div style="margin-top: 1em; text-align: center">
+      <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
+      <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
+    </div>
   </div>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>  <script>
     const params = new URLSearchParams(location.search);
     const mapKey = params.get('mapKey');
@@ -91,8 +101,8 @@
           card.innerHTML = `
             <img src="${o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png'}">
             <div class="order-info">
-              <div style="text-align:center;margin-bottom:0.3em"><strong>${o.userName}</strong></div>
-              <strong>${o.from}</strong>
+              <div class="nama">${o.userName}</div>
+              <div class="alamat">${o.from}</div>
               <div class="order-footer">
                 <span>${o.distance}</span>
                 <span>${o.duration}</span>
@@ -113,12 +123,21 @@
     function tampilkanBottomSheet(o) {
       const sheet = document.getElementById('bottomSheet');
       const content = document.getElementById('sheetContent');
+      const ringkasan = document.getElementById('ringkasanOrder');
+      document.getElementById('fotoPenumpang').src = o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png';
+      document.getElementById('namaPenumpang').textContent = o.userName;
+
       content.innerHTML = `
-        <p><strong>${o.userName}</strong></p>
         <p>${o.from}</p>
         <p>${o.to}</p>
         <p>Telp: ${o.phone}</p>
       `;
+      ringkasan.innerHTML = `
+        <span>${o.distance}</span>
+        <span>${o.duration}</span>
+        <span>Rp ${o.totalPrice}</span>
+      `;
+
       const [latFrom, lngFrom] = o.from_latlng.split(',');
       const [latTo, lngTo] = o.to_latlng.split(',');
       const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}`;
