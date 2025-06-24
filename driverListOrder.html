@@ -40,7 +40,11 @@
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 15px;
-            display: flex;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 8px 15px;
+            align-items: start;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             position: relative;
         }
@@ -50,22 +54,25 @@
             height: 60px;
             border-radius: 50%;
             object-fit: cover;
-            margin-right: 15px;
+            grid-row: span 2;
+            align-self: center;
         }
         
         .order-info {
-            flex: 1;
+            grid-column: 2;
         }
         
         .user-name {
+            grid-column: 3;
+            grid-row: 1;
+            text-align: right;
             font-size: 14px;
-            margin-bottom: 5px;
             color: #333;
         }
         
         .pickup-address {
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             color: #222;
         }
         
@@ -74,6 +81,17 @@
             justify-content: space-between;
             font-size: 12px;
             color: #666;
+        }
+        
+        .distance-badge {
+            grid-column: 3;
+            grid-row: 2;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            justify-self: end;
         }
         
         .bottom-sheet {
@@ -178,17 +196,6 @@
             color: white;
         }
         
-        .distance-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #4CAF50;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-        }
-        
         .no-orders {
             text-align: center;
             padding: 50px 20px;
@@ -262,6 +269,11 @@
         let database = null;
         let mapKey = null;
 
+        // Fungsi untuk memformat rupiah
+        function formatRupiah(amount) {
+            return 'Rp' + parseInt(amount).toLocaleString('id-ID');
+        }
+
         // Fungsi untuk memuat order dari Firebase
         function loadOrders() {
             console.log("Memulai memuat orders...");
@@ -320,14 +332,14 @@
                 orderElement.innerHTML = `
                     <img src="${order.photo_url || 'https://via.placeholder.com/60'}" class="profile-photo" alt="Profile">
                     <div class="order-info">
-                        <div class="user-name">${order.userName || 'Pelanggan'}</div>
                         <div class="pickup-address">${order.from || 'Alamat jemput tidak tersedia'}</div>
                         <div class="order-meta">
                             <span>${order.distance || '0 km'}</span>
                             <span>${order.duration || '0 menit'}</span>
-                            <span>${order.totalPrice || 'Rp0'}</span>
+                            <span>${formatRupiah(order.totalPrice || 0)}</span>
                         </div>
                     </div>
+                    <div class="user-name">${order.userName || 'Pelanggan'}</div>
                     <div class="distance-badge">${distance.toFixed(1)} km</div>
                 `;
                 
@@ -352,7 +364,7 @@
             document.getElementById('sheetPhone').textContent = order.phone || 'Nomor tidak tersedia';
             document.getElementById('sheetDistance').textContent = order.distance || '0 km';
             document.getElementById('sheetDuration').textContent = order.duration || '0 menit';
-            document.getElementById('sheetPrice').textContent = order.totalPrice || 'Rp0';
+            document.getElementById('sheetPrice').textContent = formatRupiah(order.totalPrice || 0);
             
             // Load Google Maps dengan dark mode
             const fromLatLng = order.from_latlng ? order.from_latlng.split(',') : ['0', '0'];
