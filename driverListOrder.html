@@ -1,22 +1,11 @@
-<!DOCTYPE html>
-<html lang="id">
+<!DOCTYPE html><html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daftar Orderan Driver</title>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #f4f4f4;
-    }
-    header {
-      padding: 10px;
-      background-color: #004aad;
-      color: white;
-      text-align: center;
-      font-size: 18px;
-    }
+    body { margin: 0; font-family: sans-serif; background: #f4f4f4; }
+    header { padding: 10px; background-color: #004aad; color: white; text-align: center; font-size: 18px; }
     .order-card {
       background: white;
       margin: 10px;
@@ -28,25 +17,16 @@
       gap: 12px;
       cursor: pointer;
     }
-    .profile {
-      text-align: center;
-    }
+    .profile { text-align: center; }
     .profile img {
       width: 50px;
       height: 50px;
       border-radius: 50%;
       object-fit: cover;
     }
-    .profile-name {
-      font-size: 12px;
-      margin-top: 4px;
-    }
-    .order-details {
-      flex: 1;
-    }
-    .alamat {
-      font-weight: bold;
-    }
+    .profile-name { font-size: 12px; margin-top: 4px; }
+    .order-details { flex: 1; }
+    .alamat { font-weight: bold; }
     .info-horizontal {
       display: flex;
       gap: 10px;
@@ -68,25 +48,11 @@
       flex-direction: column;
       padding: 16px;
     }
-    #bottomSheet.show {
-      transform: translateY(0);
-    }
-    #map {
-      width: 100%;
-      height: 60vh;
-      border-radius: 12px;
-      margin-bottom: 10px;
-    }
-    .sheet-header {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-    #sheetPhoto img {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-    }
+    #bottomSheet.show { transform: translateY(0); }
+    #map { width: 100%; height: 60vh; border-radius: 12px; margin-bottom: 10px; }
+    .sheet-header { display: flex; gap: 12px; align-items: center; }
+    #sheetPhoto img { width: 60px; height: 60px; border-radius: 50%; }
+    .profile-name { font-size: 14px; font-weight: bold; margin-top: 6px; }
     #closeSheet {
       margin-top: 12px;
       background: red;
@@ -101,9 +67,7 @@
 </head>
 <body>
   <header>Daftar Orderan</header>
-  <div id="orderList"></div>
-
-  <div id="bottomSheet">
+  <div id="orderList"></div>  <div id="bottomSheet">
     <div id="map"></div>
     <div class="sheet-header">
       <div class="profile" id="sheetPhoto">
@@ -116,82 +80,86 @@
       </div>
     </div>
     <div class="info-horizontal">
-      <div id="sheetDistance">🛣 0 km</div>
+      <div id="sheetDistance">🌃 0 km</div>
       <div id="sheetDuration">⏱ 0 min</div>
       <div id="sheetHarga">💰 Rp0</div>
     </div>
     <button id="closeSheet">Tutup</button>
-  </div>
+  </div>  <script>
+    const params = new URLSearchParams(location.search);
+    const mapKey = params.get('mapKey');
+    const firebaseConfig = JSON.parse(decodeURIComponent(params.get('firebaseConfig')));
+    const driverID = params.get('driverID');
+    const driverName = params.get('driverName');
 
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}`;
+    document.head.appendChild(script);
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const firebaseConfig = JSON.parse(decodeURIComponent(urlParams.get('firebaseConfig')));
-    const mapKey = urlParams.get('mapKey');
-    const driverID = urlParams.get('driverID');
-    const driverName = urlParams.get('driverName');
+    script.onload = () => {
+      initMap();
+      navigator.geolocation.getCurrentPosition(pos => {
+        driverLat = pos.coords.latitude;
+        driverLng = pos.coords.longitude;
+        loadOrders();
+      });
+    };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    document.write(`<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"><\/script>`);
+    document.write(`<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"><\/script>`);
 
-    let map, directionsService, directionsRenderer;
-    let driverLat = null, driverLng = null;
+    window.addEventListener('load', () => {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database();
+    });
 
-    function haversineDistance(lat1, lon1, lat2, lon2) {
-      const R = 6371;
-      const toRad = x => x * Math.PI / 180;
-      const dLat = toRad(lat2 - lat1);
-      const dLon = toRad(lon2 - lon1);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
-      return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-    }
+    let db, map, directionsService, directionsRenderer, driverLat, driverLng;
+    const sheet = document.getElementById("bottomSheet");
+    const orderList = document.getElementById("orderList");
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: 1.52, lng: 124.85 },
         zoom: 14,
+        center: { lat: 1.52, lng: 124.85 },
         disableDefaultUI: true
       });
       directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map });
+      directionsRenderer = new google.maps.DirectionsRenderer({
+        map: map,
+        suppressMarkers: false
+      });
     }
 
     function showBottomSheet(data) {
-      document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || "";
-      document.getElementById("sheetName").innerText = data.userName || "-";
-      document.getElementById("sheetFrom").innerText = data.from || "-";
-      document.getElementById("sheetTo").innerText = data.to || "-";
-      document.getElementById("sheetDistance").innerText = "🛣 " + (data.distance || "0 km");
-      document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || "0 min");
-      document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || "0");
+      document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || 'https://via.placeholder.com/70';
+      document.getElementById("sheetName").innerText = data.userName || '-';
+      document.getElementById("sheetFrom").innerText = data.from || '-';
+      document.getElementById("sheetTo").innerText = data.to || '-';
+      document.getElementById("sheetDistance").innerText = "🌃 " + (data.distance || '0 km');
+      document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
+      document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
-      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
-      const [toLat, toLng] = (data.to_latlng || "1.5111,124.844").split(",");
+      const [fromLat, fromLng] = data.from_latlng.split(",");
+      const [toLat, toLng] = data.to_latlng.split(",");
+      const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+      const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
 
-      directionsService.route({
-        origin: { lat: parseFloat(fromLat), lng: parseFloat(fromLng) },
-        destination: { lat: parseFloat(toLat), lng: parseFloat(toLng) },
-        travelMode: 'DRIVING'
-      }, (result, status) => {
+      directionsService.route({ origin, destination, travelMode: 'DRIVING' }, (response, status) => {
         if (status === 'OK') {
-          directionsRenderer.setDirections(result);
+          directionsRenderer.setDirections(response);
         }
       });
 
-      document.getElementById("bottomSheet").classList.add("show");
+      sheet.classList.add("show");
     }
 
     document.getElementById("closeSheet").addEventListener("click", () => {
-      document.getElementById("bottomSheet").classList.remove("show");
+      sheet.classList.remove("show");
     });
 
     function loadOrders() {
       db.ref("orders").on("value", snapshot => {
-        const orderList = document.getElementById("orderList");
         orderList.innerHTML = "";
-
         snapshot.forEach(child => {
           const data = child.val();
           if (data.status !== "pending") return;
@@ -200,49 +168,23 @@
           card.className = "order-card";
           card.innerHTML = `
             <div class="profile">
-              <img src="${data.photo_url || ''}" />
-              <div class="profile-name">${data.userName || ''}</div>
+              <img src="${data.photo_url || 'https://via.placeholder.com/50'}" />
+              <div class="profile-name">${data.userName || 'Tanpa Nama'}</div>
             </div>
             <div class="order-details">
-              <div class="alamat">${data.from || ''}</div>
-              <div>${data.to || ''}</div>
+              <div class="alamat">${data.from || '-'}</div>
+              <div>${data.to || '-'}</div>
               <div class="info-horizontal">
-                <div>🛣 ${data.distance || '0 km'}</div>
-                <div>⏱ ${data.duration || '0 min'}</div>
+                <div>🌃 ${data.distance || '0'}</div>
+                <div>⏱ ${data.duration || '0'}</div>
                 <div>💰 Rp${data.totalPrice || '0'}</div>
               </div>
             </div>
           `;
-
-          const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
-          if (driverLat && driverLng) {
-            const dist = haversineDistance(driverLat, driverLng, parseFloat(fromLat), parseFloat(fromLng));
-            if (dist < 2) showBottomSheet(data);
-          }
-
           card.addEventListener("click", () => showBottomSheet(data));
           orderList.appendChild(card);
         });
       });
     }
-
-    window.initMap = function() {
-      initMap();
-      navigator.geolocation.getCurrentPosition(pos => {
-        driverLat = pos.coords.latitude;
-        driverLng = pos.coords.longitude;
-        loadOrders();
-      });
-    };
-  </script>
-
-  <!-- Load Google Maps API Async -->
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=" id="mapScript"></script>
-  <script>
-    const key = new URLSearchParams(location.search).get("mapKey");
-    if (key) {
-      document.getElementById("mapScript").src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap`;
-    }
-  </script>
-</body>
+  </script></body>
 </html>
