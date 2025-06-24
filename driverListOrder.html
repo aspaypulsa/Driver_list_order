@@ -14,8 +14,8 @@
       width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
     }
     .order-info { flex: 1; }
-    .order-info .nama { font-weight: bold; font-size: 1em; margin-top: 0.5em; }
-    .order-info .alamat { font-weight: bold; font-size: 0.9em; }
+    .order-info .nama { font-weight: bold; font-size: 1em; }
+    .order-info .alamat { font-weight: bold; font-size: 0.9em; margin-top: 0.3em; }
     .order-footer { display: flex; justify-content: space-between; margin-top: 0.5em; font-size: 0.9em; }
     .bottom-sheet {
       position: fixed; left: 0; right: 0; bottom: 0; background: white;
@@ -87,7 +87,7 @@
         orderList.innerHTML = '';
         for (const id in data) {
           const o = data[id];
-          if (o.status !== 'pending' || orderDibatalkan.has(id)) continue;
+          if (o.status !== 'pending') continue;
 
           const [latJemput, lngJemput] = o.from_latlng.split(',').map(Number);
           const jarak = haversine(lokasiDriver.lat, lokasiDriver.lng, latJemput, lngJemput);
@@ -97,8 +97,8 @@
           card.innerHTML = `
             <img src="${o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png'}">
             <div class="order-info">
-              <div class="alamat">${o.from}</div>
               <div class="nama">${o.userName}</div>
+              <div class="alamat">${o.from}</div>
               <div class="order-footer">
                 <span>${o.distance}</span>
                 <span>${o.duration}</span>
@@ -108,7 +108,7 @@
           `;
           orderList.appendChild(card);
 
-          if (jarak <= 2 && (!orderDipilih || orderDipilih.id !== id)) {
+          if (jarak <= 2 && (!orderDipilih || orderDipilih.id !== id) && !orderDibatalkan.has(id)) {
             orderDipilih = { id, data: o };
             tampilkanBottomSheet(o);
           }
@@ -152,7 +152,6 @@
       }
       document.getElementById('bottomSheet').style.display = 'none';
       orderDipilih = null;
-      muatOrder();
     }
 
     function ambilOrder() {
