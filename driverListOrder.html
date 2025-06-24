@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Daftar Orderan Driver</title>
   <style>
     body {
@@ -21,7 +21,7 @@
       margin: 10px;
       padding: 12px;
       border-radius: 12px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
       gap: 12px;
@@ -131,16 +131,17 @@
     }
 
     const mapKey = getParam("mapKey");
-    const firebaseUrl = getParam("firebase_url");
-    const driverID = getParam("driverID");
-    const driverName = getParam("driverName");
-
-    document.getElementById("maps-script").src = "https://maps.googleapis.com/maps/api/js?key=" + mapKey;
-
     const firebaseConfig = {
-      apiKey: "dummy",
-      databaseURL: firebaseUrl
+      apiKey: getParam("apiKey"),
+      authDomain: getParam("authDomain"),
+      databaseURL: getParam("firebase_url"),
+      projectId: getParam("projectId"),
+      storageBucket: getParam("storageBucket"),
+      messagingSenderId: getParam("messagingSenderId"),
+      appId: getParam("appId")
     };
+
+    document.getElementById("maps-script").src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}`;
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
@@ -194,8 +195,8 @@
       const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
 
       directionsService.route({
-        origin: origin,
-        destination: destination,
+        origin,
+        destination,
         travelMode: 'DRIVING'
       }, (response, status) => {
         if (status === 'OK') {
@@ -203,17 +204,14 @@
 
           new google.maps.Marker({
             position: origin,
-            map: map,
+            map,
             icon: {
               url: vehicleIcons[data.vehicle] || vehicleIcons['motor'],
               scaledSize: new google.maps.Size(40, 40)
             }
           });
 
-          new google.maps.Marker({
-            position: destination,
-            map: map
-          });
+          new google.maps.Marker({ position: destination, map });
         }
       });
 
@@ -242,12 +240,11 @@
               <div class="alamat">${data.from || '-'}</div>
               <div>${data.to || '-'}</div>
               <div class="info-horizontal">
-                <div>🌃 ${data.distance || '0'} </div>
-                <div>⏱ ${data.duration || '0'} </div>
+                <div>🌃 ${data.distance || '0'}</div>
+                <div>⏱ ${data.duration || '0'}</div>
                 <div>💰 Rp${data.totalPrice || '0'}</div>
               </div>
-            </div>
-          `;
+            </div>`;
 
           const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
           const distanceToPickup = haversineDistance(driverLat, driverLng, parseFloat(fromLat), parseFloat(fromLng));
@@ -256,10 +253,7 @@
             showBottomSheet(data);
           }
 
-          card.addEventListener("click", () => {
-            showBottomSheet(data);
-          });
-
+          card.addEventListener("click", () => showBottomSheet(data));
           orderList.appendChild(card);
         });
       });
