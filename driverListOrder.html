@@ -119,20 +119,27 @@
       </div>
     </div>
     <div class="info-horizontal">
-      <div id="sheetDistance">🚣 0 km</div>
+      <div id="sheetDistance">🌃 0 km</div>
       <div id="sheetDuration">⏱ 0 min</div>
       <div id="sheetHarga">💰 Rp0</div>
     </div>
     <button id="closeSheet">Tutup</button>
-  </div>  <!-- Firebase & Maps -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCEsbn9W4ivUesB15wmDuMhOT4JR6Mq9Bs"></script>  <script>
+  </div>  <!-- Firebase & Maps -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script id="maps-script" src=""></script>  <script>
+    function getParam(name) {
+      const url = new URL(location.href);
+      return url.searchParams.get(name);
+    }
+
+    const mapKey = getParam("mapKey");
+    const firebaseUrl = getParam("firebase_url");
+    const driverID = getParam("driverID");
+    const driverName = getParam("driverName");
+
+    document.getElementById("maps-script").src = "https://maps.googleapis.com/maps/api/js?key=" + mapKey;
+
     const firebaseConfig = {
-      apiKey: "AIzaSyAFWLUF2aH-lD6UTofpRsy1rXbBrLHTagI",
-      authDomain: "chatting-87e87.firebaseapp.com",
-      databaseURL: "https://chatting-87e87-default-rtdb.firebaseio.com",
-      projectId: "chatting-87e87",
-      storageBucket: "chatting-87e87.appspot.com",
-      messagingSenderId: "1234567890",
-      appId: "1:1234567890:web:abc123"
+      apiKey: "dummy",
+      databaseURL: firebaseUrl
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -170,7 +177,7 @@
       document.getElementById("sheetName").innerText = data.userName || '-';
       document.getElementById("sheetFrom").innerText = data.from || '-';
       document.getElementById("sheetTo").innerText = data.to || '-';
-      document.getElementById("sheetDistance").innerText = "🚣 " + (data.distance || '0 km');
+      document.getElementById("sheetDistance").innerText = "🌃 " + (data.distance || '0 km');
       document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
@@ -214,7 +221,7 @@
               <div class="alamat">${data.from || '-'}</div>
               <div>${data.to || '-'}</div>
               <div class="info-horizontal">
-                <div>🚣 ${data.distance || '0'} </div>
+                <div>🌃 ${data.distance || '0'} </div>
                 <div>⏱ ${data.duration || '0'} </div>
                 <div>💰 Rp${data.totalPrice || '0'}</div>
               </div>
