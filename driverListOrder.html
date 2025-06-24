@@ -105,7 +105,8 @@
 </head>
 <body>
   <header>Daftar Orderan</header>
-  <div id="orderList"></div>  <div id="bottomSheet">
+  <div id="orderList"></div>
+  <div id="bottomSheet">
     <div id="map"></div>
     <div class="sheet-header">
       <div class="profile" id="sheetPhoto">
@@ -118,7 +119,7 @@
       </div>
     </div>
     <div class="info-horizontal">
-      <div id="sheetDistance">🛣 0 km</div>
+      <div id="sheetDistance">🚣 0 km</div>
       <div id="sheetDuration">⏱ 0 min</div>
       <div id="sheetHarga">💰 Rp0</div>
     </div>
@@ -169,14 +170,14 @@
       document.getElementById("sheetName").innerText = data.userName || '-';
       document.getElementById("sheetFrom").innerText = data.from || '-';
       document.getElementById("sheetTo").innerText = data.to || '-';
-      document.getElementById("sheetDistance").innerText = "🛣 " + (data.distance || '0 km');
+      document.getElementById("sheetDistance").innerText = "🚣 " + (data.distance || '0 km');
       document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
       const [fromLat, fromLng] = data.from_latlng.split(",");
       const [toLat, toLng] = data.to_latlng.split(",");
-const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
-const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
+      const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+      const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
 
       directionsService.route({
         origin: origin,
@@ -213,7 +214,7 @@ const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng))
               <div class="alamat">${data.from || '-'}</div>
               <div>${data.to || '-'}</div>
               <div class="info-horizontal">
-                <div>🛣 ${data.distance || '0'} </div>
+                <div>🚣 ${data.distance || '0'} </div>
                 <div>⏱ ${data.duration || '0'} </div>
                 <div>💰 Rp${data.totalPrice || '0'}</div>
               </div>
