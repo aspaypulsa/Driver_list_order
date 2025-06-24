@@ -1,7 +1,8 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Daftar Orderan Driver</title>
   <style>
     body {
@@ -91,8 +92,26 @@
       font-weight: bold;
       margin-top: 6px;
     }
+    #progressBar {
+      width: 100%;
+      height: 6px;
+      background: #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    #progressInner {
+      height: 100%;
+      width: 0%;
+      background: #f00;
+      animation: progressAnim 10s linear forwards;
+    }
+    @keyframes progressAnim {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
     #closeSheet {
-      margin-top: 12px;
+      margin-top: auto;
       background: red;
       color: white;
       padding: 10px;
@@ -105,8 +124,11 @@
 </head>
 <body>
   <header>Daftar Orderan</header>
-  <div id="orderList"></div>  <div id="bottomSheet">
+  <div id="orderList"></div>
+
+  <div id="bottomSheet">
     <div id="map"></div>
+    <div id="progressBar"><div id="progressInner"></div></div>
     <div class="sheet-header">
       <div class="profile" id="sheetPhoto">
         <img src="">
@@ -123,16 +145,30 @@
       <div id="sheetHarga">💰 Rp0</div>
     </div>
     <button id="closeSheet">Tutup</button>
-  </div>  <!-- Firebase -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script>
+  </div>
+
+  <audio id="notifSound" loop>
+    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg" />
+  </audio>
+
+  <!-- Firebase & Maps -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+  <script>
+    // Ambil parameter URL
     const urlParams = new URLSearchParams(window.location.search);
-    const driverID = urlParams.get("driverID");
-    const driverName = urlParams.get("driverName");
     const mapKey = urlParams.get("mapKey");
-    const firebaseURL = urlParams.get("firebase_url") || "https://chatting-87e87-default-rtdb.firebaseio.com";
+    const firebase_url = urlParams.get("firebase_url");
+
+    if (!mapKey || !firebase_url) {
+      alert("Parameter 'mapKey' atau 'firebase_url' belum dimasukkan di URL.");
+    }
 
     const firebaseConfig = {
       apiKey: "dummy",
-      databaseURL: firebaseURL
+      authDomain: "dummy.firebaseapp.com",
+      databaseURL: firebase_url,
+      projectId: "dummy",
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -141,17 +177,12 @@
     const sheet = document.getElementById("bottomSheet");
     const orderList = document.getElementById("orderList");
 
-    let map, directionsService, directionsRenderer;
+    let map, directionsService, directionsRenderer, notifTimeout;
 
     function loadGoogleMapsScript(callback) {
-      if (!mapKey) {
-        alert("API key Google Maps tidak ditemukan di parameter URL.");
-        return;
-      }
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}`;
-      script.defer = true;
-      script.onload = callback;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapKey}&callback=${callback.name}`;
+      script.async = true;
       document.head.appendChild(script);
     }
 
@@ -162,7 +193,41 @@
         disableDefaultUI: true
       });
       directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({ map });
+      directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: false });
+      loadOrders(); // baru load order setelah peta siap
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function playSoundLoop() {
+      const audio = document.getElementById("notifSound");
+      if (audio) audio.play().catch(() => {});
+    }
+
+    function stopSound() {
+      const audio = document.getElementById("notifSound");
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    }
+
+    function autoCloseSheetAfterDelay() {
+      clearTimeout(notifTimeout);
+      notifTimeout = setTimeout(() => {
+        sheet.classList.remove("show");
+        stopSound();
+      }, 10000);
     }
 
     function showBottomSheet(data) {
@@ -174,12 +239,12 @@
       document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
-      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
-      const latDriver = data.lat_driver || "1.52481";
-      const lngDriver = data.lng_driver || "124.85412";
+      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",").map(Number);
+      const latDriver = parseFloat(data.lat_driver);
+      const lngDriver = parseFloat(data.lng_driver);
 
-      const origin = new google.maps.LatLng(parseFloat(latDriver), parseFloat(lngDriver));
-      const destination = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
+      const origin = new google.maps.LatLng(latDriver, lngDriver);
+      const destination = new google.maps.LatLng(fromLat, fromLng);
 
       directionsService.route({
         origin: origin,
@@ -188,16 +253,19 @@
       }, (response, status) => {
         if (status === 'OK') {
           directionsRenderer.setDirections(response);
-        } else {
-          console.warn("Gagal menampilkan rute:", status);
         }
       });
 
       sheet.classList.add("show");
+      document.getElementById("progressInner").style.animation = "progressAnim 10s linear forwards";
+      playSoundLoop();
+      autoCloseSheetAfterDelay();
     }
 
     document.getElementById("closeSheet").addEventListener("click", () => {
       sheet.classList.remove("show");
+      stopSound();
+      clearTimeout(notifTimeout);
     });
 
     function loadOrders() {
@@ -206,7 +274,6 @@
         snapshot.forEach(child => {
           const data = child.val();
           if (data.status !== "pending") return;
-          if (driverID && data.driverID !== driverID) return;
 
           const card = document.createElement("div");
           card.className = "order-card";
@@ -229,13 +296,20 @@
             showBottomSheet(data);
           });
           orderList.appendChild(card);
+
+          // AUTO DETECT JARAK < 2KM
+          const [fromLat, fromLng] = (data.from_latlng || "").split(",").map(Number);
+          const latDriver = parseFloat(data.lat_driver);
+          const lngDriver = parseFloat(data.lng_driver);
+          if (!isNaN(fromLat) && !isNaN(latDriver)) {
+            const jarak = haversine(fromLat, fromLng, latDriver, lngDriver);
+            if (jarak < 2) showBottomSheet(data);
+          }
         });
       });
     }
 
-    loadGoogleMapsScript(() => {
-      initMap();
-      loadOrders();
-    });
-  </script></body>
+    loadGoogleMapsScript(initMap);
+  </script>
+</body>
 </html>
