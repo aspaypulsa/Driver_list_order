@@ -5,15 +5,254 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver App - Daftar Order</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* ... (CSS sebelumnya tetap sama) ... */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .order-list {
+            padding: 15px;
+        }
+        
+        .order-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        
+        .order-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .pickup-address {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #222;
+        }
+        
+        .order-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            padding: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+            max-height: 80vh;
+            overflow-y: auto;
+            touch-action: none;
+        }
+        
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .map-container iframe {
+            filter: grayscale(100%) invert(90%) contrast(90%) hue-rotate(180deg);
+            border: none;
+        }
+        
+        .sheet-header {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .sheet-profile {
+            margin-right: 15px;
+            text-align: center;
+        }
+        
+        .sheet-profile-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .sheet-details {
+            flex: 1;
+        }
+        
+        .address {
+            margin-bottom: 5px;
+        }
+        
+        .pickup {
+            font-weight: bold;
+        }
+        
+        .phone {
+            color: #4CAF50;
+            margin-top: 5px;
+        }
+        
+        .sheet-meta {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .cancel-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .accept-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .distance-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .error-message {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <!-- ... (HTML sebelumnya tetap sama) ... -->
+    <div class="header">
+        <h1>Daftar Order</h1>
+    </div>
+    
+    <div class="order-list" id="orderList">
+        <div class="loading">Memuat order...</div>
+    </div>
+    
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="map-container" id="mapContainer"></div>
+        
+        <div class="sheet-header">
+            <div class="sheet-profile">
+                <img id="sheetPhoto" class="sheet-profile-photo" src="" alt="Profile">
+                <div id="sheetName" class="user-name"></div>
+            </div>
+            <div class="sheet-details">
+                <div class="address pickup" id="sheetFrom"></div>
+                <div class="address" id="sheetTo"></div>
+                <div class="phone" id="sheetPhone"></div>
+            </div>
+        </div>
+        
+        <div class="sheet-meta">
+            <div>
+                <div style="font-size: 12px; color: #666;">Jarak</div>
+                <div id="sheetDistance"></div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #666;">Durasi</div>
+                <div id="sheetDuration"></div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #666;">Harga</div>
+                <div id="sheetPrice"></div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button cancel-btn" id="cancelBtn">Batalkan</button>
+            <button class="button accept-btn" id="acceptBtn">Ambil Order</button>
+        </div>
+    </div>
 
     <script>
         // Variabel global
@@ -21,16 +260,21 @@
         let currentOrder = null;
         let ordersRef = null;
         let database = null;
+        let mapKey = null;
 
         // Fungsi untuk memuat order dari Firebase
         function loadOrders() {
             console.log("Memulai memuat orders...");
-            ordersRef = database.ref('orders');
             
             ordersRef.orderByChild('status').equalTo('pending').on('value', snapshot => {
                 const orders = snapshot.val();
                 console.log("Data order diterima:", orders);
                 renderOrders(orders);
+                
+                // Cek jarak setelah data dimuat
+                if (currentPosition) {
+                    checkDistanceToOrders();
+                }
             }, error => {
                 console.error("Error memuat orders:", error);
                 document.getElementById('orderList').innerHTML = `
@@ -43,7 +287,7 @@
             });
         }
 
-        // Fungsi untuk menampilkan order ke dalam list
+        // Fungsi untuk menampilkan order
         function renderOrders(orders) {
             const orderList = document.getElementById('orderList');
             
@@ -59,11 +303,13 @@
             orderList.innerHTML = '';
             
             Object.entries(orders).forEach(([orderId, order]) => {
+                if (!order) return;
+                
                 const orderElement = document.createElement('div');
                 orderElement.className = 'order-card';
                 orderElement.dataset.orderId = orderId;
                 
-                const fromLatLng = order.from_latlng ? order.from_latlng.split(',') : [0, 0];
+                const fromLatLng = order.from_latlng ? order.from_latlng.split(',') : ['0', '0'];
                 const distance = currentPosition ? calculateDistance(
                     currentPosition.lat,
                     currentPosition.lng,
@@ -96,6 +342,9 @@
 
         // Fungsi untuk membuka bottom sheet
         function openBottomSheet(order) {
+            if (!order) return;
+            
+            // Isi data order
             document.getElementById('sheetPhoto').src = order.photo_url || 'https://via.placeholder.com/50';
             document.getElementById('sheetName').textContent = order.userName || 'Pelanggan';
             document.getElementById('sheetFrom').textContent = order.from || 'Alamat jemput tidak tersedia';
@@ -105,9 +354,9 @@
             document.getElementById('sheetDuration').textContent = order.duration || '0 menit';
             document.getElementById('sheetPrice').textContent = order.totalPrice || 'Rp0';
             
-            // Load Google Maps
-            const fromLatLng = order.from_latlng ? order.from_latlng.split(',') : [0, 0];
-            const toLatLng = order.to_latlng ? order.to_latlng.split(',') : [0, 0];
+            // Load Google Maps dengan dark mode
+            const fromLatLng = order.from_latlng ? order.from_latlng.split(',') : ['0', '0'];
+            const toLatLng = order.to_latlng ? order.to_latlng.split(',') : ['0', '0'];
             
             let mapUrl = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}`;
             mapUrl += `&origin=${currentPosition ? currentPosition.lat + ',' + currentPosition.lng : fromLatLng[0] + ',' + fromLatLng[1]}`;
@@ -115,16 +364,25 @@
             mapUrl += `&waypoints=${fromLatLng[0]},${fromLatLng[1]}`;
             mapUrl += '&mode=driving&zoom=14';
             
-            document.getElementById('mapContainer').innerHTML = `
-                <iframe width="100%" height="100%" frameborder="0" style="border:0" src="${mapUrl}" allowfullscreen></iframe>
+            mapContainer.innerHTML = `
+                <iframe 
+                    width="100%" 
+                    height="100%" 
+                    frameborder="0" 
+                    style="border:0" 
+                    src="${mapUrl}"
+                    allowfullscreen
+                    loading="lazy"
+                    referrerpolicy="no-referrer-when-downgrade"
+                ></iframe>
             `;
             
-            document.getElementById('bottomSheet').classList.add('active');
+            bottomSheet.classList.add('active');
         }
 
         // Fungsi untuk menutup bottom sheet
         function closeBottomSheet() {
-            document.getElementById('bottomSheet').classList.remove('active');
+            bottomSheet.classList.remove('active');
             currentOrder = null;
         }
 
@@ -134,6 +392,7 @@
             
             database.ref(`orders/${currentOrder.id}`).update({ status: 'di_ambil' })
                 .then(() => {
+                    // Kirim ke WebView jika ada
                     if (window.android && window.android.postWebViewString) {
                         window.android.postWebViewString('di_ambil');
                     }
@@ -146,14 +405,14 @@
 
         // Fungsi untuk mengecek jarak ke order
         function checkDistanceToOrders() {
-            if (!currentPosition) return;
+            if (!currentPosition || !ordersRef) return;
             
             ordersRef.orderByChild('status').equalTo('pending').once('value', snapshot => {
                 const orders = snapshot.val();
                 if (!orders) return;
                 
                 Object.entries(orders).forEach(([orderId, order]) => {
-                    if (!order.from_latlng) return;
+                    if (!order || !order.from_latlng) return;
                     
                     const fromLatLng = order.from_latlng.split(',');
                     const distance = calculateDistance(
@@ -163,6 +422,9 @@
                         parseFloat(fromLatLng[1])
                     );
                     
+                    console.log(`Jarak ke order ${orderId}: ${distance.toFixed(2)} km`);
+                    
+                    // Buka bottom sheet jika jarak < 2 km
                     if (distance < 2 && (!currentOrder || currentOrder.id !== orderId)) {
                         currentOrder = { ...order, id: orderId };
                         openBottomSheet(order);
@@ -171,9 +433,9 @@
             });
         }
 
-        // Fungsi untuk menghitung jarak
+        // Fungsi untuk menghitung jarak (Haversine formula)
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371;
+            const R = 6371; // Radius bumi dalam km
             const dLat = deg2rad(lat2 - lat1);
             const dLon = deg2rad(lon2 - lon1);
             const a = 
@@ -188,32 +450,42 @@
             return deg * (Math.PI/180);
         }
 
-        // Fungsi init utama
+        // Fungsi utama untuk inisialisasi
         function init() {
-            console.log("Aplikasi mulai diinisialisasi...");
+            console.log("Inisialisasi aplikasi...");
             
+            // Parse URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const firebaseConfigParam = urlParams.get('firebaseConfig');
-            const mapKey = urlParams.get('mapKey');
+            mapKey = urlParams.get('mapKey');
             
             if (!firebaseConfigParam || !mapKey) {
+                const errorMsg = !firebaseConfigParam && !mapKey 
+                    ? "firebaseConfig dan mapKey tidak ditemukan" 
+                    : !firebaseConfigParam 
+                        ? "firebaseConfig tidak ditemukan" 
+                        : "mapKey tidak ditemukan";
+                
                 document.getElementById('orderList').innerHTML = `
-                    <div class="error-message">
-                        ${!firebaseConfigParam ? 'Parameter firebaseConfig tidak ditemukan' : 'Parameter mapKey tidak ditemukan'}
-                    </div>
+                    <div class="error-message">Parameter ${errorMsg} di URL</div>
                 `;
+                console.error(errorMsg);
                 return;
             }
             
             try {
+                // Initialize Firebase
                 const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
                 
                 if (!firebase.apps.length) {
                     firebase.initializeApp(firebaseConfig);
+                    console.log("Firebase initialized");
                 }
                 
                 database = firebase.database();
+                ordersRef = database.ref('orders');
                 
+                // Start geolocation tracking
                 if (navigator.geolocation) {
                     navigator.geolocation.watchPosition(
                         position => {
@@ -221,27 +493,40 @@
                                 lat: position.coords.latitude,
                                 lng: position.coords.longitude
                             };
+                            console.log("Posisi diperbarui:", currentPosition);
                             checkDistanceToOrders();
                         },
                         error => {
-                            console.error('Error getting location:', error);
-                            loadOrders();
+                            console.error('Error geolocation:', error);
+                            loadOrders(); // Tetap load orders meski geolocation error
                         },
-                        { enableHighAccuracy: true }
+                        { 
+                            enableHighAccuracy: true,
+                            maximumAge: 30000,
+                            timeout: 10000 
+                        }
                     );
                 } else {
+                    console.log("Geolocation tidak didukung");
                     loadOrders();
                 }
                 
+                // Setup event listeners
                 document.getElementById('cancelBtn').addEventListener('click', closeBottomSheet);
                 document.getElementById('acceptBtn').addEventListener('click', acceptOrder);
                 
+                // Prevent bottom sheet scrolling
+                document.getElementById('bottomSheet').addEventListener('touchmove', function(e) {
+                    e.preventDefault();
+                }, { passive: false });
+                
+                // Load initial orders
                 loadOrders();
                 
             } catch (error) {
                 console.error("Error inisialisasi:", error);
                 document.getElementById('orderList').innerHTML = `
-                    <div class="error-message">Gagal menginisialisasi aplikasi: ${error.message}</div>
+                    <div class="error-message">Gagal inisialisasi: ${error.message}</div>
                 `;
             }
         }
