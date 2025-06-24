@@ -69,6 +69,24 @@
       padding: 20px;
       color: #555;
     }
+    /* Efek untuk auto-open */
+    @keyframes blink {
+      0% { box-shadow: 0 0 0 0 rgba(0,74,173,0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(0,74,173,0); }
+      100% { box-shadow: 0 0 0 0 rgba(0,74,173,0); }
+    }
+    .auto-open {
+      animation: blink 2s;
+      border: 2px solid #004aad;
+    }
+    /* Style untuk custom marker */
+    .custom-marker {
+      width: 40px !important;
+      height: 40px !important;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
   </style>
 </head>
 <body>
@@ -93,6 +111,7 @@
       <div id="sheetDistance">🌃 0 km</div>
       <div id="sheetDuration">⏱ 0 min</div>
       <div id="sheetHarga">💰 Rp0</div>
+      <div id="sheetVehicle">🚗 -</div>
     </div>
     <button id="closeSheet">Tutup</button>
   </div>
@@ -102,10 +121,25 @@
     let db, map, directionsService, directionsRenderer, driverLat, driverLng;
     const sheet = document.getElementById("bottomSheet");
     const orderList = document.getElementById("orderList");
+    let markers = []; // Untuk menyimpan marker
+
+    // Ikon kendaraan
+    const vehicleIcons = {
+      'motor': 'https://cdn-icons-png.flaticon.com/128/5811/5811823.png',
+      'mobil': 'https://cdn-icons-png.flaticon.com/128/12689/12689302.png',
+      'kurir': 'https://cdn-icons-png.flaticon.com/128/9561/9561688.png',
+      'bentor': 'https://cdn-icons-png.flaticon.com/128/2967/2967353.png',
+      'default': 'https://cdn-icons-png.flaticon.com/128/484/484167.png'
+    };
 
     // Fungsi utama yang dijalankan saat halaman siap
     document.addEventListener('DOMContentLoaded', async () => {
       try {
+        // Minta izin notifikasi
+        if ('Notification' in window) {
+          Notification.requestPermission();
+        }
+
         // Ambil parameter URL
         const params = new URLSearchParams(location.search);
         const mapKey = params.get('mapKey');
@@ -145,7 +179,7 @@
 
     // Fungsi untuk memuat Google Maps API
     async function loadGoogleMaps(mapKey) {
-      await loadScript(`https://maps.googleapis.com/maps/api/js?key=${mapKey}`);
+      await loadScript(`https://maps.googleapis.com/maps/api/js?key=${mapKey}&libraries=geometry`);
       initMap();
     }
 
@@ -157,6 +191,13 @@
             driverLat = pos.coords.latitude;
             driverLng = pos.coords.longitude;
             console.log("Driver location:", driverLat, driverLng);
+            
+            // Mulai cek order terdekat
+            checkNearbyOrders();
+            
+            // Cek lokasi secara berkala (setiap 30 detik)
+            setInterval(checkNearbyOrders, 30000);
+            
             resolve();
           },
           error => {
@@ -188,13 +229,13 @@
       directionsService = new google.maps.DirectionsService();
       directionsRenderer = new google.maps.DirectionsRenderer({
         map: map,
-        suppressMarkers: false
+        suppressMarkers: true // Nonaktifkan marker default
       });
       console.log("Google Maps initialized");
     }
 
     // Fungsi untuk menampilkan bottom sheet
-    function showBottomSheet(data) {
+    function showBottomSheet(data, isAutoOpen = false) {
       try {
         document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || 'https://via.placeholder.com/70';
         document.getElementById("sheetName").innerText = data.userName || '-';
@@ -203,6 +244,7 @@
         document.getElementById("sheetDistance").innerText = "🌃 " + (data.distance || '0 km');
         document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
         document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
+        document.getElementById("sheetVehicle").innerText = "🚗 " + (data.vehicle || '-');
 
         if (data.from_latlng && data.to_latlng) {
           const [fromLat, fromLng] = data.from_latlng.split(",");
@@ -210,7 +252,18 @@
           const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
           const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
 
-          directionsService.route({ origin, destination, travelMode: 'DRIVING' }, (response, status) => {
+          // Clear existing markers
+          clearMarkers();
+
+          // Tambahkan marker dengan ikon kendaraan
+          addVehicleMarker(origin, data.vehicle || 'default', 'Penjemputan');
+          addVehicleMarker(destination, data.vehicle || 'default', 'Tujuan');
+
+          directionsService.route({ 
+            origin, 
+            destination, 
+            travelMode: 'DRIVING' 
+          }, (response, status) => {
             if (status === 'OK') {
               directionsRenderer.setDirections(response);
             } else {
@@ -220,9 +273,43 @@
         }
 
         sheet.classList.add("show");
+        if (isAutoOpen) {
+          sheet.classList.add("auto-open");
+          setTimeout(() => sheet.classList.remove("auto-open"), 2000);
+          
+          // Putar suara notifikasi
+          new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3').play();
+          
+          // Tampilkan notifikasi browser
+          if (Notification.permission === "granted") {
+            new Notification("Order Dekat!", {
+              body: `Ada orderan baru ${data.distance || '0'} km dari Anda`
+            });
+          }
+        }
       } catch (error) {
         console.error("Error showing bottom sheet:", error);
       }
+    }
+
+    // Fungsi untuk menambahkan marker dengan ikon kendaraan
+    function addVehicleMarker(position, vehicle, title) {
+      const marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        title: title,
+        icon: {
+          url: vehicleIcons[vehicle] || vehicleIcons['default'],
+          scaledSize: new google.maps.Size(40, 40)
+        }
+      });
+      markers.push(marker);
+    }
+
+    // Fungsi untuk menghapus semua marker
+    function clearMarkers() {
+      markers.forEach(marker => marker.setMap(null));
+      markers = [];
     }
 
     // Event listener untuk tombol tutup
@@ -266,6 +353,7 @@
                       <div>🌃 ${data.distance || '0'}</div>
                       <div>⏱ ${data.duration || '0'}</div>
                       <div>💰 Rp${data.totalPrice || '0'}</div>
+                      <div>🚗 ${data.vehicle || '-'}</div>
                     </div>
                   </div>
                 `;
@@ -294,6 +382,46 @@
           reject(error);
         }
       });
+    }
+
+    // Fungsi untuk cek order terdekat (≤2km)
+    function checkNearbyOrders() {
+      if (!driverLat || !driverLng) return;
+
+      db.ref("orders").once("value", (snapshot) => {
+        snapshot.forEach((child) => {
+          const order = child.val();
+          
+          // Skip jika order tidak pending atau tidak ada koordinat
+          if (order.status !== "pending" || !order.from_latlng) return;
+          
+          const [fromLat, fromLng] = order.from_latlng.split(",");
+          const distance = calculateDistance(
+            driverLat, 
+            driverLng,
+            parseFloat(fromLat),
+            parseFloat(fromLng)
+          );
+          
+          // Jika jarak < 2km dan bottom sheet belum terbuka
+          if (distance < 2 && !sheet.classList.contains("show")) {
+            showBottomSheet(order, true);
+          }
+        });
+      });
+    }
+
+    // Fungsi menghitung jarak (Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Radius bumi dalam km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c; // Jarak dalam km
     }
   </script>
 </body>
