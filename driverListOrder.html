@@ -6,31 +6,285 @@
     <title>Driver App - Daftar Order</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* ... (CSS sebelumnya tetap sama) ... */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
         
+        body {
+            background-color: #f5f5f5;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .order-list {
+            padding: 15px;
+        }
+        
+        .order-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        
+        .order-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .pickup-address {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #222;
+        }
+        
+        .order-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            padding: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+            max-height: 80vh;
+            overflow-y: auto;
+            touch-action: none;
+        }
+        
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        /* Dark mode untuk Google Maps */
         .map-container iframe {
-            filter: grayscale(100%) invert(90%) contrast(90%) hue-rotate(180deg);
+            filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(90%);
             border: none;
         }
+        
+        /* ... (CSS lainnya tetap sama) ... */
     </style>
 </head>
 <body>
-    <!-- ... (HTML sebelumnya tetap sama) ... -->
-
+    <!-- Konten HTML sebelumnya tetap sama -->
+    
     <script>
-        // ... (Script sebelumnya tetap sama sampai fungsi openBottomSheet) ...
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const firebaseConfigParam = urlParams.get('firebaseConfig');
+        const mapKey = urlParams.get('mapKey');
         
-        function openBottomSheet(order) {
-            document.getElementById('sheetPhoto').src = order.photo_url || 'https://via.placeholder.com/50';
-            document.getElementById('sheetName').textContent = order.userName;
-            document.getElementById('sheetFrom').textContent = order.from;
-            document.getElementById('sheetTo').textContent = order.to;
-            document.getElementById('sheetPhone').textContent = order.phone;
-            document.getElementById('sheetDistance').textContent = order.distance;
-            document.getElementById('sheetDuration').textContent = order.duration;
-            document.getElementById('sheetPrice').textContent = order.totalPrice;
+        if (!firebaseConfigParam || !mapKey) {
+            document.getElementById('orderList').innerHTML = `
+                <div class="no-orders">
+                    <p>Parameter firebaseConfig atau mapKey tidak ditemukan di URL.</p>
+                </div>
+            `;
+            throw new Error('Parameter firebaseConfig atau mapKey tidak ditemukan di URL.');
+        }
+        
+        // Initialize Firebase
+        const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
+        
+        // Perbaikan penting: Cek apakah Firebase sudah diinisialisasi sebelumnya
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        } else {
+            firebase.app(); // Jika sudah ada, gunakan yang sudah ada
+        }
+        
+        const database = firebase.database();
+        
+        // DOM elements
+        const orderList = document.getElementById('orderList');
+        const bottomSheet = document.getElementById('bottomSheet');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const mapContainer = document.getElementById('mapContainer');
+        
+        // Variables
+        let currentPosition = null;
+        let watchId = null;
+        let currentOrder = null;
+        let ordersRef = null;
+        
+        // Initialize the app
+        function init() {
+            // Start watching position
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        currentPosition = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        checkDistanceToOrders();
+                    },
+                    error => {
+                        console.error('Error getting location:', error);
+                        // Tetap lanjut meski geolocation error
+                        loadOrders();
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+                loadOrders();
+            }
             
-            // Load Google Maps dengan parameter yang valid dan tampilan minimal
+            // Set up event listeners
+            cancelBtn.addEventListener('click', closeBottomSheet);
+            acceptBtn.addEventListener('click', acceptOrder);
+            
+            // Mencegah scroll pada bottom sheet
+            bottomSheet.addEventListener('touchmove', function(e) {
+                e.preventDefault();
+            }, { passive: false });
+        }
+        
+        // Fungsi baru untuk memuat orders
+        function loadOrders() {
+            ordersRef = database.ref('orders');
+            ordersRef.orderByChild('status').equalTo('pending').on('value', snapshot => {
+                const orders = snapshot.val();
+                renderOrders(orders);
+            }, error => {
+                console.error('Error loading orders:', error);
+                orderList.innerHTML = `
+                    <div class="no-orders">
+                        <p>Gagal memuat data order. Silakan coba lagi.</p>
+                    </div>
+                `;
+            });
+        }
+        
+        // Render orders to the list
+        function renderOrders(orders) {
+            if (!orders) {
+                orderList.innerHTML = `
+                    <div class="no-orders">
+                        <p>Tidak ada order yang tersedia</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            orderList.innerHTML = '';
+            
+            Object.entries(orders).forEach(([orderId, order]) => {
+                // Pastikan semua field yang diperlukan ada
+                if (!order.from_latlng || !order.to_latlng) {
+                    console.warn('Order data incomplete:', order);
+                    return;
+                }
+                
+                const orderElement = document.createElement('div');
+                orderElement.className = 'order-card';
+                orderElement.dataset.orderId = orderId;
+                
+                const fromLatLng = order.from_latlng.split(',');
+                const distance = currentPosition ? calculateDistance(
+                    currentPosition.lat,
+                    currentPosition.lng,
+                    parseFloat(fromLatLng[0]),
+                    parseFloat(fromLatLng[1])
+                ) : 0;
+                
+                orderElement.innerHTML = `
+                    <img src="${order.photo_url || 'https://via.placeholder.com/60'}" class="profile-photo" alt="Profile">
+                    <div class="order-info">
+                        <div class="user-name">${order.userName || 'Tanpa Nama'}</div>
+                        <div class="pickup-address">${order.from || 'Alamat tidak tersedia'}</div>
+                        <div class="order-meta">
+                            <span>${order.distance || '0 km'}</span>
+                            <span>${order.duration || '0 min'}</span>
+                            <span>${order.totalPrice || 'Rp0'}</span>
+                        </div>
+                    </div>
+                    ${currentPosition ? `<div class="distance-badge">${distance.toFixed(1)} km</div>` : ''}
+                `;
+                
+                orderElement.addEventListener('click', () => {
+                    currentOrder = { ...order, id: orderId };
+                    openBottomSheet(order);
+                });
+                
+                orderList.appendChild(orderElement);
+            });
+        }
+        
+        // Open bottom sheet with order details
+        function openBottomSheet(order) {
+            // Isi data order
+            document.getElementById('sheetPhoto').src = order.photo_url || 'https://via.placeholder.com/50';
+            document.getElementById('sheetName').textContent = order.userName || 'Tanpa Nama';
+            document.getElementById('sheetFrom').textContent = order.from || 'Alamat jemput tidak tersedia';
+            document.getElementById('sheetTo').textContent = order.to || 'Alamat tujuan tidak tersedia';
+            document.getElementById('sheetPhone').textContent = order.phone || 'Nomor tidak tersedia';
+            document.getElementById('sheetDistance').textContent = order.distance || '0 km';
+            document.getElementById('sheetDuration').textContent = order.duration || '0 min';
+            document.getElementById('sheetPrice').textContent = order.totalPrice || 'Rp0';
+            
+            // Load Google Maps dengan tampilan minimalis
             const fromLatLng = order.from_latlng.split(',');
             const toLatLng = order.to_latlng.split(',');
             
@@ -41,11 +295,9 @@
             mapUrl += '&mode=driving';
             mapUrl += '&zoom=14';
             mapUrl += '&maptype=roadmap';
-            mapUrl += '&language=id';
-            mapUrl += '&region=ID';
             
-            // Menghilangkan semua UI yang tidak diperlukan
-            const iframeHtml = `
+            // Bersihkan map container dan tambahkan overlay
+            mapContainer.innerHTML = `
                 <iframe 
                     width="100%" 
                     height="100%" 
@@ -56,22 +308,13 @@
                     loading="lazy"
                     referrerpolicy="no-referrer-when-downgrade"
                 ></iframe>
+                <div class="map-overlay"></div>
             `;
             
-            mapContainer.innerHTML = iframeHtml;
-            
             bottomSheet.classList.add('active');
-            
-            // Tambahan untuk memastikan UI Google Maps benar-benar bersih
-            setTimeout(() => {
-                const iframe = mapContainer.querySelector('iframe');
-                if (iframe) {
-                    iframe.style.pointerEvents = 'none';
-                }
-            }, 1000);
         }
         
-        // ... (Script setelahnya tetap sama) ...
+        // ... (Fungsi lainnya tetap sama) ...
     </script>
 </body>
 </html>
