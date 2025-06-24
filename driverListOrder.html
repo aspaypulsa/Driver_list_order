@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="id">
+<!DOCTYPE html>
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -86,11 +87,6 @@
       height: 60px;
       border-radius: 50%;
     }
-    .profile-name {
-      font-size: 14px;
-      font-weight: bold;
-      margin-top: 6px;
-    }
     #closeSheet {
       margin-top: 12px;
       background: red;
@@ -106,6 +102,7 @@
 <body>
   <header>Daftar Orderan</header>
   <div id="orderList"></div>
+
   <div id="bottomSheet">
     <div id="map"></div>
     <div class="sheet-header">
@@ -119,36 +116,28 @@
       </div>
     </div>
     <div class="info-horizontal">
-      <div id="sheetDistance">🌃 0 km</div>
+      <div id="sheetDistance">🛣 0 km</div>
       <div id="sheetDuration">⏱ 0 min</div>
       <div id="sheetHarga">💰 Rp0</div>
     </div>
     <button id="closeSheet">Tutup</button>
-  </div>  <!-- Firebase & Maps -->  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>  <script id="maps-script" src=""></script>  <script>
-    function getParam(name) {
-      const url = new URL(location.href);
-      return url.searchParams.get(name);
-    }
+  </div>
 
-    const mapKey = getParam("mapKey");
-    const firebaseUrl = getParam("firebase_url");
-    const driverID = getParam("driverID");
-    const driverName = getParam("driverName");
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
 
-    document.getElementById("maps-script").src = "https://maps.googleapis.com/maps/api/js?key=" + mapKey;
-
-    const firebaseConfig = {
-      apiKey: "dummy",
-      databaseURL: firebaseUrl
-    };
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const firebaseConfig = JSON.parse(decodeURIComponent(urlParams.get('firebaseConfig')));
+    const mapKey = urlParams.get('mapKey');
+    const driverID = urlParams.get('driverID');
+    const driverName = urlParams.get('driverName');
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const sheet = document.getElementById("bottomSheet");
-    const orderList = document.getElementById("orderList");
-
-    let map, directionsService, directionsRenderer, driverLat = null, driverLng = null;
+    let map, directionsService, directionsRenderer;
+    let driverLat = null, driverLng = null;
 
     function haversineDistance(lat1, lon1, lat2, lon2) {
       const R = 6371;
@@ -161,51 +150,48 @@
 
     function initMap() {
       map = new google.maps.Map(document.getElementById("map"), {
-        zoom: 14,
         center: { lat: 1.52, lng: 124.85 },
+        zoom: 14,
         disableDefaultUI: true
       });
       directionsService = new google.maps.DirectionsService();
-      directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: false
-      });
+      directionsRenderer = new google.maps.DirectionsRenderer({ map });
     }
 
     function showBottomSheet(data) {
-      document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || 'https://via.placeholder.com/70';
-      document.getElementById("sheetName").innerText = data.userName || '-';
-      document.getElementById("sheetFrom").innerText = data.from || '-';
-      document.getElementById("sheetTo").innerText = data.to || '-';
-      document.getElementById("sheetDistance").innerText = "🌃 " + (data.distance || '0 km');
-      document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
-      document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
+      document.getElementById("sheetPhoto").querySelector("img").src = data.photo_url || "";
+      document.getElementById("sheetName").innerText = data.userName || "-";
+      document.getElementById("sheetFrom").innerText = data.from || "-";
+      document.getElementById("sheetTo").innerText = data.to || "-";
+      document.getElementById("sheetDistance").innerText = "🛣 " + (data.distance || "0 km");
+      document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || "0 min");
+      document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || "0");
 
-      const [fromLat, fromLng] = data.from_latlng.split(",");
-      const [toLat, toLng] = data.to_latlng.split(",");
-      const origin = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
-      const destination = new google.maps.LatLng(parseFloat(toLat), parseFloat(toLng));
+      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
+      const [toLat, toLng] = (data.to_latlng || "1.5111,124.844").split(",");
 
       directionsService.route({
-        origin: origin,
-        destination: destination,
+        origin: { lat: parseFloat(fromLat), lng: parseFloat(fromLng) },
+        destination: { lat: parseFloat(toLat), lng: parseFloat(toLng) },
         travelMode: 'DRIVING'
-      }, (response, status) => {
+      }, (result, status) => {
         if (status === 'OK') {
-          directionsRenderer.setDirections(response);
+          directionsRenderer.setDirections(result);
         }
       });
 
-      sheet.classList.add("show");
+      document.getElementById("bottomSheet").classList.add("show");
     }
 
     document.getElementById("closeSheet").addEventListener("click", () => {
-      sheet.classList.remove("show");
+      document.getElementById("bottomSheet").classList.remove("show");
     });
 
     function loadOrders() {
       db.ref("orders").on("value", snapshot => {
+        const orderList = document.getElementById("orderList");
         orderList.innerHTML = "";
+
         snapshot.forEach(child => {
           const data = child.val();
           if (data.status !== "pending") return;
@@ -214,41 +200,49 @@
           card.className = "order-card";
           card.innerHTML = `
             <div class="profile">
-              <img src="${data.photo_url || 'https://via.placeholder.com/50'}" />
-              <div class="profile-name">${data.userName || 'Tanpa Nama'}</div>
+              <img src="${data.photo_url || ''}" />
+              <div class="profile-name">${data.userName || ''}</div>
             </div>
             <div class="order-details">
-              <div class="alamat">${data.from || '-'}</div>
-              <div>${data.to || '-'}</div>
+              <div class="alamat">${data.from || ''}</div>
+              <div>${data.to || ''}</div>
               <div class="info-horizontal">
-                <div>🌃 ${data.distance || '0'} </div>
-                <div>⏱ ${data.duration || '0'} </div>
+                <div>🛣 ${data.distance || '0 km'}</div>
+                <div>⏱ ${data.duration || '0 min'}</div>
                 <div>💰 Rp${data.totalPrice || '0'}</div>
               </div>
             </div>
           `;
 
           const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
-          const distanceToPickup = haversineDistance(driverLat, driverLng, parseFloat(fromLat), parseFloat(fromLng));
-
-          if (distanceToPickup < 2) {
-            showBottomSheet(data);
+          if (driverLat && driverLng) {
+            const dist = haversineDistance(driverLat, driverLng, parseFloat(fromLat), parseFloat(fromLng));
+            if (dist < 2) showBottomSheet(data);
           }
 
-          card.addEventListener("click", () => {
-            showBottomSheet(data);
-          });
-
+          card.addEventListener("click", () => showBottomSheet(data));
           orderList.appendChild(card);
         });
       });
     }
 
-    navigator.geolocation.getCurrentPosition(pos => {
-      driverLat = pos.coords.latitude;
-      driverLng = pos.coords.longitude;
+    window.initMap = function() {
       initMap();
-      loadOrders();
-    });
-  </script></body>
+      navigator.geolocation.getCurrentPosition(pos => {
+        driverLat = pos.coords.latitude;
+        driverLng = pos.coords.longitude;
+        loadOrders();
+      });
+    };
+  </script>
+
+  <!-- Load Google Maps API Async -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=" id="mapScript"></script>
+  <script>
+    const key = new URLSearchParams(location.search).get("mapKey");
+    if (key) {
+      document.getElementById("mapScript").src = `https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap`;
+    }
+  </script>
+</body>
 </html>
