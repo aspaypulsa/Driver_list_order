@@ -24,11 +24,16 @@
       display: none; z-index: 10;
     }
     .map-container { width: 100%; height: 300px; border-radius: 12px; overflow: hidden; margin-bottom: 1em; }
-    .bottom-sheet img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto; }
-    .bottom-sheet .nama-penumpang { text-align: center; font-weight: bold; margin-top: 0.5em; }
-    .order-detail { margin: 1em 0; text-align: center; }
+    .order-header { display: flex; align-items: center; gap: 1em; margin-bottom: 1em; }
+    .order-header img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
+    .order-header .nama { font-weight: bold; font-size: 1em; }
+    .order-detail p { margin: 0.3em 0; }
+    .order-detail .from { font-weight: bold; }
     .order-summary { display: flex; justify-content: space-between; margin-top: 1em; font-size: 0.95em; }
-    .bottom-sheet button { padding: 0.6em 1em; border: none; border-radius: 6px; margin-right: 1em; cursor: pointer; }
+    .button-group { display: flex; justify-content: space-between; gap: 1em; margin-top: 1em; }
+    .button-group button {
+      flex: 1; padding: 0.6em; border: none; border-radius: 6px; font-weight: bold;
+    }
     .btn-batal { background: #dc3545; color: white; }
     .btn-ambil { background: #28a745; color: white; }
   </style>
@@ -43,11 +48,13 @@
     <div class="map-container">
       <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
-    <img id="fotoPenumpang" src="" alt="Foto Penumpang">
-    <div class="nama-penumpang" id="namaPenumpang"></div>
+    <div class="order-header">
+      <img id="fotoPenumpang" src="" alt="Foto Penumpang">
+      <div class="nama" id="namaPenumpang"></div>
+    </div>
     <div class="order-detail" id="sheetContent"></div>
     <div class="order-summary" id="ringkasanOrder"></div>
-    <div style="margin-top: 1em; text-align: center">
+    <div class="button-group">
       <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
       <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
     </div>
@@ -128,7 +135,7 @@
       document.getElementById('namaPenumpang').textContent = o.userName;
 
       content.innerHTML = `
-        <p>${o.from}</p>
+        <p class="from">${o.from}</p>
         <p>${o.to}</p>
         <p>Telp: ${o.phone}</p>
       `;
@@ -140,7 +147,7 @@
 
       const [latFrom, lngFrom] = o.from_latlng.split(',');
       const [latTo, lngTo] = o.to_latlng.split(',');
-      const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}`;
+      const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}&mode=driving&avoid=tolls`;
 
       if (url !== currentMapUrl) {
         document.getElementById('mapFrame').src = url;
