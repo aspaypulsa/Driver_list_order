@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background: #f2f2f2; }
-    .toggle-container { padding: 1em; text-align: center; background: white; }
     .order-list { padding: 1em; }
     .order-card {
       background: white; border-radius: 12px; padding: 1em; margin-bottom: 1em;
@@ -15,7 +14,7 @@
       width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
     }
     .order-info { flex: 1; }
-    .order-info .nama { font-weight: bold; font-size: 1em; margin-bottom: 0.3em; text-align: center; }
+    .order-info .nama { font-weight: bold; font-size: 1em; margin-top: 0.5em; }
     .order-info .alamat { font-weight: bold; font-size: 0.9em; }
     .order-footer { display: flex; justify-content: space-between; margin-top: 0.5em; font-size: 0.9em; }
     .bottom-sheet {
@@ -39,11 +38,6 @@
   </style>
 </head>
 <body>
-  <div class="toggle-container">
-    <label>
-      <input type="checkbox" id="toggleAktif"> Tampilkan Order Aktif
-    </label>
-  </div>
   <div class="order-list" id="orderList">Memuat order...</div>  <div class="bottom-sheet" id="bottomSheet">
     <div class="map-container">
       <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
@@ -65,19 +59,14 @@
     firebase.initializeApp(config);
     const db = firebase.database();
 
-    let aktif = false;
     let lokasiDriver = null;
     let orderDipilih = null;
     let currentMapUrl = "";
     let orderDibatalkan = new Set();
 
-    document.getElementById('toggleAktif').addEventListener('change', e => {
-      aktif = e.target.checked;
-    });
-
     navigator.geolocation.watchPosition(pos => {
       lokasiDriver = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      if (aktif) muatOrder();
+      muatOrder();
     });
 
     function haversine(lat1, lng1, lat2, lng2) {
@@ -108,8 +97,8 @@
           card.innerHTML = `
             <img src="${o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png'}">
             <div class="order-info">
-              <div class="nama">${o.userName}</div>
               <div class="alamat">${o.from}</div>
+              <div class="nama">${o.userName}</div>
               <div class="order-footer">
                 <span>${o.distance}</span>
                 <span>${o.duration}</span>
@@ -163,6 +152,7 @@
       }
       document.getElementById('bottomSheet').style.display = 'none';
       orderDipilih = null;
+      muatOrder();
     }
 
     function ambilOrder() {
