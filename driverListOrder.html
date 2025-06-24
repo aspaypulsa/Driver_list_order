@@ -173,7 +173,7 @@
       document.getElementById("sheetDuration").innerText = "⏱ " + (data.duration || '0 min');
       document.getElementById("sheetHarga").innerText = "💰 Rp" + (data.totalPrice || '0');
 
-      const [fromLat, fromLng] = (data.from_latlng || "1.52393,124.85515").split(",");
+      const [fromLat, fromLng] = data.from_latlng.split(",");
       const origin = new google.maps.LatLng(driverLat, driverLng);
       const destination = new google.maps.LatLng(parseFloat(fromLat), parseFloat(fromLng));
 
