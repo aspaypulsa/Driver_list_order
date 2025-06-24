@@ -1,166 +1,460 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Daftar Order Driver</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f2f2f2; }
-    .order-list { padding: 1em; }
-    .order-card {
-      background: white; border-radius: 12px; padding: 1em; margin-bottom: 1em;
-      display: flex; align-items: flex-start; gap: 1em; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-    .order-card img {
-      width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
-    }
-    .order-info { flex: 1; }
-    .order-info .nama { font-weight: bold; font-size: 1em; }
-    .order-info .alamat { font-weight: bold; font-size: 0.9em; margin-top: 0.3em; }
-    .order-footer { display: flex; justify-content: space-between; margin-top: 0.5em; font-size: 0.9em; }
-    .bottom-sheet {
-      position: fixed; left: 0; right: 0; bottom: 0; background: white;
-      border-radius: 20px 20px 0 0; padding: 1em; box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-      display: none; z-index: 10;
-    }
-    .map-container { width: 100%; height: 300px; border-radius: 12px; overflow: hidden; margin-bottom: 1em; }
-    .order-header { display: flex; align-items: center; gap: 1em; margin-bottom: 1em; }
-    .order-header img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; }
-    .order-header .nama { font-weight: bold; font-size: 1em; }
-    .order-detail p { margin: 0.3em 0; }
-    .order-detail .from { font-weight: bold; }
-    .order-summary { display: flex; justify-content: space-between; margin-top: 1em; font-size: 0.95em; }
-    .button-group { display: flex; justify-content: space-between; gap: 1em; margin-top: 1em; }
-    .button-group button {
-      flex: 1; padding: 0.6em; border: none; border-radius: 6px; font-weight: bold;
-    }
-    .btn-batal { background: #dc3545; color: white; }
-    .btn-ambil { background: #28a745; color: white; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver App - Daftar Order</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding-bottom: 80px;
+        }
+        
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .order-list {
+            padding: 15px;
+        }
+        
+        .order-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .profile-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 15px;
+        }
+        
+        .order-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        .pickup-address {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #222;
+        }
+        
+        .order-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .bottom-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            padding: 15px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .sheet-header {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        
+        .sheet-profile {
+            margin-right: 15px;
+            text-align: center;
+        }
+        
+        .sheet-profile-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .sheet-details {
+            flex: 1;
+        }
+        
+        .address {
+            margin-bottom: 5px;
+        }
+        
+        .pickup {
+            font-weight: bold;
+        }
+        
+        .phone {
+            color: #4CAF50;
+            margin-top: 5px;
+        }
+        
+        .sheet-meta {
+            display: flex;
+            justify-content: space-between;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        
+        .cancel-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .accept-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .distance-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 50px 20px;
+            color: #666;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-  <div class="order-list" id="orderList">Memuat order...</div>  <div class="bottom-sheet" id="bottomSheet">
-    <div class="map-container">
-      <iframe id="mapFrame" width="100%" height="100%" style="border:0" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div class="header">
+        <h1>Daftar Order</h1>
     </div>
-    <div class="order-header">
-      <img id="fotoPenumpang" src="" alt="Foto Penumpang">
-      <div class="nama" id="namaPenumpang"></div>
+    
+    <div class="order-list" id="orderList">
+        <div class="loading">Memuat order...</div>
     </div>
-    <div class="order-detail" id="sheetContent"></div>
-    <div class="order-summary" id="ringkasanOrder"></div>
-    <div class="button-group">
-      <button class="btn-batal" onclick="batalkanOrder()">Batalkan</button>
-      <button class="btn-ambil" onclick="ambilOrder()">Ambil Order</button>
-    </div>
-  </div>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>  <script>
-    const params = new URLSearchParams(location.search);
-    const mapKey = params.get('mapKey');
-    const config = JSON.parse(decodeURIComponent(params.get('firebaseConfig')));
-    firebase.initializeApp(config);
-    const db = firebase.database();
-
-    let lokasiDriver = null;
-    let orderDipilih = null;
-    let currentMapUrl = "";
-    let orderDibatalkan = new Set();
-
-    navigator.geolocation.watchPosition(pos => {
-      lokasiDriver = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      muatOrder();
-    });
-
-    function haversine(lat1, lng1, lat2, lng2) {
-      const toRad = x => x * Math.PI / 180;
-      const R = 6371;
-      const dLat = toRad(lat2 - lat1);
-      const dLng = toRad(lng2 - lng1);
-      const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    }
-
-    function muatOrder() {
-      if (!lokasiDriver) return;
-
-      db.ref('orders').once('value', snap => {
-        const data = snap.val();
-        const orderList = document.getElementById('orderList');
-        orderList.innerHTML = '';
-        for (const id in data) {
-          const o = data[id];
-          if (o.status !== 'pending') continue;
-
-          const [latJemput, lngJemput] = o.from_latlng.split(',').map(Number);
-          const jarak = haversine(lokasiDriver.lat, lokasiDriver.lng, latJemput, lngJemput);
-
-          const card = document.createElement('div');
-          card.className = 'order-card';
-          card.innerHTML = `
-            <img src="${o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png'}">
-            <div class="order-info">
-              <div class="nama">${o.userName}</div>
-              <div class="alamat">${o.from}</div>
-              <div class="order-footer">
-                <span>${o.distance}</span>
-                <span>${o.duration}</span>
-                <span>Rp ${o.totalPrice}</span>
-              </div>
+    
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="map-container" id="mapContainer"></div>
+        
+        <div class="sheet-header">
+            <div class="sheet-profile">
+                <img id="sheetPhoto" class="sheet-profile-photo" src="" alt="Profile">
+                <div id="sheetName" class="user-name"></div>
             </div>
-          `;
-          orderList.appendChild(card);
+            <div class="sheet-details">
+                <div class="address pickup" id="sheetFrom"></div>
+                <div class="address" id="sheetTo"></div>
+                <div class="phone" id="sheetPhone"></div>
+            </div>
+        </div>
+        
+        <div class="sheet-meta">
+            <div>
+                <div style="font-size: 12px; color: #666;">Jarak</div>
+                <div id="sheetDistance"></div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #666;">Durasi</div>
+                <div id="sheetDuration"></div>
+            </div>
+            <div>
+                <div style="font-size: 12px; color: #666;">Harga</div>
+                <div id="sheetPrice"></div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button cancel-btn" id="cancelBtn">Batalkan</button>
+            <button class="button accept-btn" id="acceptBtn">Ambil Order</button>
+        </div>
+    </div>
 
-          if (jarak <= 2 && (!orderDipilih || orderDipilih.id !== id) && !orderDibatalkan.has(id)) {
-            orderDipilih = { id, data: o };
-            tampilkanBottomSheet(o);
-          }
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script>
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const firebaseConfigParam = urlParams.get('firebaseConfig');
+        const mapKey = urlParams.get('mapKey');
+        
+        if (!firebaseConfigParam || !mapKey) {
+            document.getElementById('orderList').innerHTML = `
+                <div class="no-orders">
+                    <p>Parameter firebaseConfig atau mapKey tidak ditemukan di URL.</p>
+                </div>
+            `;
+            throw new Error('Parameter firebaseConfig atau mapKey tidak ditemukan di URL.');
         }
-      });
-    }
-
-    function tampilkanBottomSheet(o) {
-      const sheet = document.getElementById('bottomSheet');
-      const content = document.getElementById('sheetContent');
-      const ringkasan = document.getElementById('ringkasanOrder');
-      document.getElementById('fotoPenumpang').src = o.photo_url || 'https://i.ibb.co/BBt4p4P/no-profile.png';
-      document.getElementById('namaPenumpang').textContent = o.userName;
-
-      content.innerHTML = `
-        <p class="from">${o.from}</p>
-        <p>${o.to}</p>
-        <p>Telp: ${o.phone}</p>
-      `;
-      ringkasan.innerHTML = `
-        <span>${o.distance}</span>
-        <span>${o.duration}</span>
-        <span>Rp ${o.totalPrice}</span>
-      `;
-
-      const [latFrom, lngFrom] = o.from_latlng.split(',');
-      const [latTo, lngTo] = o.to_latlng.split(',');
-      const url = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}&origin=${lokasiDriver.lat},${lokasiDriver.lng}&destination=${latTo},${lngTo}&waypoints=${latFrom},${lngFrom}&mode=driving&avoid=tolls`;
-
-      if (url !== currentMapUrl) {
-        document.getElementById('mapFrame').src = url;
-        currentMapUrl = url;
-      }
-
-      sheet.style.display = 'block';
-    }
-
-    function batalkanOrder() {
-      if (orderDipilih) {
-        orderDibatalkan.add(orderDipilih.id);
-      }
-      document.getElementById('bottomSheet').style.display = 'none';
-      orderDipilih = null;
-    }
-
-    function ambilOrder() {
-      if (!orderDipilih) return;
-      db.ref('orders/' + orderDipilih.id).update({ status: 'di_ambil' });
-      if (window.AndroidInterface && window.AndroidInterface.setWebViewString) {
-        window.AndroidInterface.setWebViewString("di_ambil");
-      }
-      document.getElementById('bottomSheet').style.display = 'none';
-    }
-  </script></body>
+        
+        // Initialize Firebase
+        const firebaseConfig = JSON.parse(decodeURIComponent(firebaseConfigParam));
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+        
+        // DOM elements
+        const orderList = document.getElementById('orderList');
+        const bottomSheet = document.getElementById('bottomSheet');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const mapContainer = document.getElementById('mapContainer');
+        
+        // Variables
+        let currentPosition = null;
+        let watchId = null;
+        let currentOrder = null;
+        let ordersRef = null;
+        
+        // Initialize the app
+        function init() {
+            // Start watching position
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(
+                    position => {
+                        currentPosition = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        checkDistanceToOrders();
+                    },
+                    error => {
+                        console.error('Error getting location:', error);
+                    },
+                    { enableHighAccuracy: true }
+                );
+            } else {
+                console.error('Geolocation is not supported by this browser.');
+            }
+            
+            // Set up Firebase listener
+            ordersRef = database.ref('orders');
+            ordersRef.orderByChild('status').equalTo('pending').on('value', snapshot => {
+                const orders = snapshot.val();
+                renderOrders(orders);
+            });
+            
+            // Set up event listeners
+            cancelBtn.addEventListener('click', closeBottomSheet);
+            acceptBtn.addEventListener('click', acceptOrder);
+        }
+        
+        // Render orders to the list
+        function renderOrders(orders) {
+            if (!orders) {
+                orderList.innerHTML = `
+                    <div class="no-orders">
+                        <p>Tidak ada order yang tersedia</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            orderList.innerHTML = '';
+            
+            Object.entries(orders).forEach(([orderId, order]) => {
+                const orderElement = document.createElement('div');
+                orderElement.className = 'order-card';
+                orderElement.dataset.orderId = orderId;
+                
+                const fromLatLng = order.from_latlng.split(',');
+                const distance = calculateDistance(
+                    currentPosition ? currentPosition.lat : 0,
+                    currentPosition ? currentPosition.lng : 0,
+                    parseFloat(fromLatLng[0]),
+                    parseFloat(fromLatLng[1])
+                );
+                
+                orderElement.innerHTML = `
+                    <img src="${order.photo_url || 'https://via.placeholder.com/60'}" class="profile-photo" alt="Profile">
+                    <div class="order-info">
+                        <div class="user-name">${order.userName}</div>
+                        <div class="pickup-address">${order.from}</div>
+                        <div class="order-meta">
+                            <span>${order.distance}</span>
+                            <span>${order.duration}</span>
+                            <span>${order.totalPrice}</span>
+                        </div>
+                    </div>
+                    <div class="distance-badge">${distance.toFixed(1)} km</div>
+                `;
+                
+                orderElement.addEventListener('click', () => {
+                    currentOrder = { ...order, id: orderId };
+                    openBottomSheet(order);
+                });
+                
+                orderList.appendChild(orderElement);
+            });
+        }
+        
+        // Open bottom sheet with order details
+        function openBottomSheet(order) {
+            document.getElementById('sheetPhoto').src = order.photo_url || 'https://via.placeholder.com/50';
+            document.getElementById('sheetName').textContent = order.userName;
+            document.getElementById('sheetFrom').textContent = order.from;
+            document.getElementById('sheetTo').textContent = order.to;
+            document.getElementById('sheetPhone').textContent = order.phone;
+            document.getElementById('sheetDistance').textContent = order.distance;
+            document.getElementById('sheetDuration').textContent = order.duration;
+            document.getElementById('sheetPrice').textContent = order.totalPrice;
+            
+            // Load Google Maps
+            const fromLatLng = order.from_latlng.split(',');
+            const toLatLng = order.to_latlng.split(',');
+            
+            let mapUrl = `https://www.google.com/maps/embed/v1/directions?key=${mapKey}`;
+            mapUrl += `&origin=${fromLatLng[0]},${fromLatLng[1]}`;
+            mapUrl += `&destination=${toLatLng[0]},${toLatLng[1]}`;
+            
+            if (currentPosition) {
+                mapUrl += `&waypoints=${currentPosition.lat},${currentPosition.lng}`;
+            }
+            
+            mapUrl += '&mode=driving&zoom=14&ui=0&map_action=map';
+            
+            mapContainer.innerHTML = `<iframe width="100%" height="100%" frameborder="0" style="border:0" src="${mapUrl}" allowfullscreen></iframe>`;
+            
+            bottomSheet.classList.add('active');
+        }
+        
+        // Close bottom sheet
+        function closeBottomSheet() {
+            bottomSheet.classList.remove('active');
+            currentOrder = null;
+        }
+        
+        // Accept order
+        function acceptOrder() {
+            if (!currentOrder) return;
+            
+            // Update status in Firebase
+            database.ref(`orders/${currentOrder.id}`).update({ status: 'di_ambil' })
+                .then(() => {
+                    // Send message to WebView if in Kodular
+                    if (window.android && window.android.postWebViewString) {
+                        window.android.postWebViewString('di_ambil');
+                    }
+                    closeBottomSheet();
+                })
+                .catch(error => {
+                    console.error('Error updating order:', error);
+                });
+        }
+        
+        // Check distance to all pending orders
+        function checkDistanceToOrders() {
+            if (!currentPosition) return;
+            
+            ordersRef.orderByChild('status').equalTo('pending').once('value', snapshot => {
+                const orders = snapshot.val();
+                if (!orders) return;
+                
+                Object.entries(orders).forEach(([orderId, order]) => {
+                    const fromLatLng = order.from_latlng.split(',');
+                    const distance = calculateDistance(
+                        currentPosition.lat,
+                        currentPosition.lng,
+                        parseFloat(fromLatLng[0]),
+                        parseFloat(fromLatLng[1])
+                    );
+                    
+                    // Auto-open bottom sheet if distance < 2 km
+                    if (distance < 2 && (!currentOrder || currentOrder.id !== orderId)) {
+                        currentOrder = { ...order, id: orderId };
+                        openBottomSheet(order);
+                    }
+                });
+            });
+        }
+        
+        // Calculate distance between two points using Haversine formula
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+        
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+        
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
 </html>
